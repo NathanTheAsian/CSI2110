@@ -1,0 +1,221 @@
+\documentclass[11pt]{article}
+
+% -------------------- Packages --------------------
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[listings]{tcolorbox}
+\tcbuselibrary{breakable}
+\usepackage{colortbl}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc}
+
+% ---------- Modular row commands ----------
+\newcommand{\memrow}[1]{\texttt{#1} \\ \hline}
+\newcommand{\highlightmemrow}[1]{\cellcolor{gray!20}\texttt{#1} \\ \hline}
+
+% ---------- Memory table environment ----------
+\newenvironment{memorytable}[1][4cm]{
+\begin{center}
+\begin{tabular}{|p{#1}|}
+\hline
+}{
+\end{tabular}
+\end{center}
+}
+
+% ---------- Memory diagram (address -> value) ----------
+\newcommand{\memcell}[2]{\texttt{#1} & \texttt{#2} \\ \hline}
+\newcommand{\highlightmemcell}[2]{\cellcolor{gray!20}\texttt{#1} & \cellcolor{gray!20}\texttt{#2} \\ \hline}
+
+% Named cells (for drawing arrows between rows/cells)
+\newcommand{\memmark}[2]{\tikz[remember picture,baseline=(#1.base)]\node[inner sep=0pt,outer sep=0pt] (#1) {#2};}
+\newcommand{\memcellm}[4]{\memmark{#1}{\texttt{#2}} & \memmark{#3}{\texttt{#4}} \\ \hline}
+\newcommand{\highlightmemcellm}[4]{\cellcolor{gray!20}\memmark{#1}{\texttt{#2}} & \cellcolor{gray!20}\memmark{#3}{\texttt{#4}} \\ \hline}
+
+% Draw an arrow from one named cell to another.
+\newcommand{\memarrow}[3][bend left=20]{%
+\tikz[remember picture,overlay] \draw[-{Stealth[length=2mm,width=2mm]}] (#2.east) to[#1] (#3.east);
+}
+
+\newenvironment{memorydiagram}[1][Memory Diagram]{
+\begin{tcolorbox}[
+    breakable,
+    colback=gray!5,
+    colframe=gray!50,
+    title={#1}
+]
+\begin{center}
+\begin{tabular}{|p{3.5cm}|p{9cm}|}
+\hline
+\textbf{Address} & \textbf{Value} \\ \hline
+}{
+\end{tabular}
+\end{center}
+\end{tcolorbox}
+}
+
+% -------------------- Header / Footer --------------------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{CSI2110 Data Structures \hfill Nathan Ng}
+\cfoot{\thepage}
+
+% -------------------- Code Styling --------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{teal},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=8pt,
+    frame=single,
+    breaklines=true,
+    tabsize=2,
+    language=Java
+}
+
+% -------------------- Custom Commands --------------------
+\newcommand{\topic}[1]{\section*{#1}}
+\newcommand{\subtopic}[1]{\subsection*{#1}}
+\newcommand{\important}{\textbf{Important: }}
+
+% ---------- Definitions (boxed + auto-numbered) ----------
+\newcounter{definition}
+\newenvironment{definition}[1][]
+{%
+    \refstepcounter{definition}%
+    \begin{tcolorbox}[
+        breakable,
+        colback=gray!5,
+        colframe=gray!50,
+        title={Definition~\thedefinition\if\relax\detokenize{#1}\relax\else\ (#1)\fi}
+    ]%
+}
+{%
+    \end{tcolorbox}%
+}
+
+\newcommand{\defn}[2][]{\begin{definition}[#1]#2\end{definition}}
+
+% ---------- Big Questions (boxed + auto-numbered) ----------
+\newcounter{bigquestion}
+\newenvironment{bigquestion}[1][]
+{%
+    \refstepcounter{bigquestion}%
+    \begin{tcolorbox}[
+        breakable,
+        colback=gray!5,
+        colframe=gray!50,
+        title={Big Question~\thebigquestion\if\relax\detokenize{#1}\relax\else\ (#1)\fi}
+    ]%
+}
+{%
+    \end{tcolorbox}%
+}
+
+\newcommand{\bigq}[2][]{\begin{bigquestion}[#1]#2\end{bigquestion}}
+\newcommand{\bigqa}[3][]{%
+    \begin{bigquestion}[#1]
+        \textbf{Q:} #2\par\medskip
+        \textbf{A:} #3
+    \end{bigquestion}%
+}
+
+% -------------------- Document --------------------
+\begin{document}
+
+\begin{center}
+    {\Large \textbf{CSI2110 -- Review Notes}}\\
+\end{center}
+
+\topic{Arrays}
+\defn[Array Memory Layout]{
+In memory, array elements are stored contiguously. For an \texttt{int[]} in Java, each element is typically 4 bytes apart.
+}
+
+\begin{lstlisting}
+int[] arr = {10, 20, 30, 40};
+\end{lstlisting}
+
+\begin{memorydiagram}[Array Example in Memory]
+  \memcell{1000}{arr[0] = 10}
+  \memcell{1004}{arr[1] = 20}
+  \memcell{1008}{arr[2] = 30}
+  \memcell{1012}{arr[3] = 40}
+\end{memorydiagram}
+
+\topic{Singly Linked Lists (SLList)}
+\defn[Singly Linked List]{
+Each node stores a value and a reference to the next node. Nodes are not required to be contiguous in memory.
+}
+
+\begin{memorydiagram}[Singly Linked List Node Layout]
+  \memcell{1000}{[10 | next $\to$ 5000]}
+  \memcell{5000}{[20 | next $\to$ 2400]}
+  \memcell{2400}{[30 | next $\to$ null]}
+\end{memorydiagram}
+
+\subtopic{Operation: Insert at Position \texttt{i}}
+Insert a new node so that:
+\begin{itemize}
+  \item The new node points to the old successor node.
+  \item The previous node now points to the new node.
+\end{itemize}
+
+\begin{lstlisting}
+void insertAt(int i, int value) {
+    Node prev = head;
+    for (int k = 0; k < i - 1; k++) {
+        prev = prev.next;
+    }
+    Node n = new Node(value);
+    n.next = prev.next;
+    prev.next = n;
+}
+\end{lstlisting}
+
+\bigqa[Tail Pointer in SLList]
+{Suppose we want to quickly insert or delete the last node. Is it sufficient to store only a tail pointer?}
+{A tail pointer helps with inserting at the end in $O(1)$ when we already know the tail. However, deleting the last node still requires locating the second-last node, so in a singly linked list deletion at the end is not $O(1)$ unless extra structure is maintained.}
+
+\topic{Doubly Linked Lists (DLList)}
+\defn[Doubly Linked List]{
+A doubly linked list stores \texttt{previous} and \texttt{next} references in each node, allowing two-way traversal.
+}
+
+\begin{memorydiagram}[Doubly Linked List Node Layout]
+  \memcell{1000}{[null $\leftarrow$ previous | 10 | next $\to$ 5000]}
+  \memcell{5000}{[1000 $\leftarrow$ previous | 20 | next $\to$ 2400]}
+  \memcell{2400}{[5000 $\leftarrow$ previous | 30 | next $\to$ null]}
+\end{memorydiagram}
+
+\subtopic{Operation: Delete Node at Position \texttt{i}}
+Deleting node \texttt{i} means:
+\begin{itemize}
+  \item Find the target node.
+  \item Redirect the previous node's \texttt{next} pointer.
+  \item Redirect the next node's \texttt{previous} pointer.
+\end{itemize}
+
+\begin{lstlisting}
+void deleteAt(Node x) {
+    if (x.prev != null) {
+        x.prev.next = x.next;
+    }
+    if (x.next != null) {
+        x.next.prev = x.prev;
+    }
+}
+\end{lstlisting}
+
+\important{In DLList, delete is cleaner because each node already has direct access to both neighbors.}
+
+\end{document}

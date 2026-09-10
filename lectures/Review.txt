@@ -1,0 +1,47 @@
+Arrays 
+In memory, arrays are stored contiguously, meaning the program will see each index as side by side in memory. 
+
+For example:
+
+int[] arr = {10, 20, 30, 40}; //an int is 4 bytes meaning each memory adress is 4 bytes away from one another.
+
+Address     Value
+1000        10
+1004        20
+1008        30
+1012        40
+
+Singly Linked List
+Each node has a value and a pointer to the next node. The memory adress is arbitrary as the value itself holds the information to the next node
+
+For example: 
+
+Memory address   Node
+1000             [10 | next → 5000]
+
+5000             [20 | next → 2400]
+
+2400             [30 | next → null]
+
+Operations for SLList: Inserting an element at node i
+Inserting a new node insets a new node pointing to the next node and the previous node now pointing to the new node.
+
+Question:
+Suppose we want to quickly insert or delete the last node, will it be sufficent to store a tail pointer?
+There may be problems as deleting the last node means knowing the reference for the second last node. So in reality we need the SECOND last node.
+
+Doubly Linked List
+Same as SLList but each node now points next and previous. Memory adress is arbitrary as the value includes next, previous and the value.
+
+
+For example: 
+
+Memory address   Node
+1000             [null ← previous  | 10 | next → 5000]
+
+5000             [1000 ← previous  | 20 | next → 2400]
+
+2400             [2400 ← previous  | 30 | next → null]
+
+Operations for DLList
+Deleting node i requires finding the node and its pointers and changing the new pointers accordingly to exclude node i.
