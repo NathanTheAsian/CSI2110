@@ -1,7 +1,7 @@
 PWD C:\Users\natha\CSI2110\lectures
 INPUT C:\Users\natha\AppData\Local\MiKTeX\miktex\data\le\pdftex\pdflatex.fmt
-INPUT Review.tex
-OUTPUT C:\Users\natha\CSI2110\trash\Review.log
+INPUT c:\Users\natha\CSI2110\lectures\Review.tex
+OUTPUT Review.log
 INPUT C:\Program Files\MiKTeX\tex\latex\base\article.cls
 INPUT C:\Program Files\MiKTeX\tex\latex\base\article.cls
 INPUT C:\Program Files\MiKTeX\tex\latex\base\size11.clo
@@ -325,10 +325,10 @@ INPUT C:\Program Files\MiKTeX\tex\latex\listings\lstlang1.sty
 INPUT C:\Program Files\MiKTeX\tex\latex\listings\lstlang1.sty
 INPUT C:\Program Files\MiKTeX\tex\latex\l3kernel\l3backend-pdftex.def
 INPUT C:\Program Files\MiKTeX\tex\latex\l3kernel\l3backend-pdftex.def
-INPUT C:\Users\natha\CSI2110\trash\Review.aux
-INPUT C:\Users\natha\CSI2110\trash\Review.aux
+INPUT .\Review.aux
+INPUT .\Review.aux
 INPUT Review.aux
-OUTPUT C:\Users\natha\CSI2110\trash\Review.aux
+OUTPUT Review.aux
 INPUT C:\Program Files\MiKTeX\tex\context\base\mkii\supp-pdf.mkii
 INPUT C:\Program Files\MiKTeX\tex\context\base\mkii\supp-pdf.mkii
 INPUT C:\Program Files\MiKTeX\tex\context\base\mkii\supp-pdf.mkii
@@ -337,14 +337,14 @@ INPUT C:\Program Files\MiKTeX\tex\latex\epstopdf-pkg\epstopdf-base.sty
 INPUT C:\Program Files\MiKTeX\tex\latex\00miktex\epstopdf-sys.cfg
 INPUT C:\Program Files\MiKTeX\tex\latex\00miktex\epstopdf-sys.cfg
 INPUT C:\Program Files\MiKTeX\tex\latex\00miktex\epstopdf-sys.cfg
-INPUT C:\Users\natha\CSI2110\trash\Review.out
-INPUT C:\Users\natha\CSI2110\trash\Review.out
+INPUT .\Review.out
+INPUT .\Review.out
 INPUT Review.out
 INPUT Review.out
-INPUT C:\Users\natha\CSI2110\trash\Review.out
-INPUT C:\Users\natha\CSI2110\trash\Review.out
-OUTPUT C:\Users\natha\CSI2110\trash\Review.out
-OUTPUT C:\Users\natha\CSI2110\trash\Review.pdf
+INPUT .\Review.out
+INPUT .\Review.out
+OUTPUT Review.out
+OUTPUT Review.pdf
 INPUT C:\Program Files\MiKTeX\fonts\tfm\public\cm\cmr12.tfm
 INPUT C:\Program Files\MiKTeX\fonts\tfm\public\cm\cmbx12.tfm
 INPUT C:\Program Files\MiKTeX\fonts\tfm\public\cm\cmtt10.tfm
@@ -379,8 +379,8 @@ INPUT C:\Program Files\MiKTeX\fonts\tfm\public\cm\cmtt12.tfm
 INPUT C:\Program Files\MiKTeX\fonts\tfm\jknappen\ec\tcrm1095.tfm
 INPUT C:\Users\natha\AppData\Local\MiKTeX\fonts\map\pdftex\pdftex.map
 INPUT Review.aux
-INPUT C:\Users\natha\CSI2110\trash\Review.out
-INPUT C:\Users\natha\CSI2110\trash\Review.out
+INPUT .\Review.out
+INPUT .\Review.out
 INPUT C:\Users\natha\AppData\Local\MiKTeX\fonts\pk\ljfour\jknappen\ec\dpi600\tcrm1095.pk
 INPUT C:\Users\natha\AppData\Local\MiKTeX\fonts\pk\ljfour\jknappen\ec\dpi600\tcrm1095.pk
 INPUT C:\Program Files\MiKTeX\fonts\type1\public\amsfonts\cm\cmbx10.pfb
