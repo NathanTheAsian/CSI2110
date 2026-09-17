@@ -66,7 +66,6 @@ class LinkList<E> extends GNode<E>{
 	LinkList<String> llist = new LinkList<>( 5 );
 	/* Print the list */
 	llist.print();
-	System.out.println("delete first and print");
 	/* delete first and print */
 	llist.deleteFirst();
 	llist.print();

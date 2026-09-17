@@ -7,6 +7,7 @@
 
 class DLinkList {
     DNode llist; //DNode object named llist
+	DNode tail;
 
     DLinkList( int sz ) {
 	if ( sz <= 0 ) {
@@ -22,6 +23,7 @@ class DLinkList {
 		DNode DNode2Add = new DNode( Integer.toString(i), null , current); 
 		current.setNext(DNode2Add);   // add first DNode
 		current=DNode2Add;
+		tail=DNode2Add;
 	    }
 	}
     }
@@ -50,13 +52,12 @@ class DLinkList {
 	if ( current == null ) return; // no node
 	if ( current.getNext() == null ) { // only 1 node
 	    llist = null;
+		tail = null;
 	    return;
 	}
-	while (current.getNext() != null ) {
-			current =  current.getNext();
-	}
-	current.getPrev().setNext(null);
-
+	tail = tail.getPrev();
+	tail.getPrev().setNext(null);
+	
     }
 
     // create and display a linked list
