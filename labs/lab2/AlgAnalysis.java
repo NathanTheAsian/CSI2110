@@ -34,7 +34,7 @@ public class AlgAnalysis {
 			return;
 		}
 
-		int step = Math.max(1, maxSize / count);
+		int step = Math.max(1, maxSize / count); 
 		for (int i = 1; i <= count; i++) {
 			int n = Math.min(maxSize, i * step);
 			if (n <= 0) {
@@ -56,7 +56,9 @@ public class AlgAnalysis {
 			double nLogN = (double) n * (Math.log(n) / Math.log(2.0));
 			System.out.println("n = " + n + ", T(n) = " + largestTime + " ns, T(n)/(n^2) = "
 				+ (largestTime / nSquared) + ", T(n)/(n log2 n) = " + (largestTime / nLogN));
-		}
+			//Whichever ratio stays more constant as n gets larger is evidence that its denominator better describes the growth rate of Arrays.sort().
+		
+			}
 	}
 	
 	/**
@@ -66,8 +68,12 @@ public class AlgAnalysis {
 	 * @return time taken in nano seconds
 	 */
 	public static long unique1Runtime(int n){
-		
-		return 0;
+		Unique1 findDups1 = new Unique1();
+		int[] array = randomizeArray(genArray(n));
+		long start = System.nanoTime();
+		findDups1.unique1(array);
+		long elapsed = System.nanoTime() - start;
+		return elapsed;
 	}
 	
 	/**
@@ -77,8 +83,12 @@ public class AlgAnalysis {
 	 * @return time taken in nano seconds
 	 */
 	public static long unique2Runtime(int n){
-		
-		return 0;
+		Unique2 findDups2 = new Unique2();
+		int[] array = randomizeArray(genArray(n));
+		long start = System.nanoTime();
+		findDups2.unique2(array);
+		long elapsed = System.nanoTime() - start;
+		return elapsed;
 	}
 	
 	/**
