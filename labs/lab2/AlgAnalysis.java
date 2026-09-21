@@ -29,25 +29,34 @@ public class AlgAnalysis {
 	 * @param  count number of arrays tested.
 	 */
 	public static void arraySortRuntime(int count, int maxSize){
-		ArrayList rt = new ArrayList<Long>();
-		for (int i=0;i!=count;i++) {
-			int n = i;
-			int[] array = new int[n];
-			System.out.print("Array size " + n + ": [");
-			for (int j=0;j<n;j++) {
-				int randInt = new Random().nextInt(10);
-				array[j] = randInt;
-				System.out.print(randInt + " ");
+		//beyond scope
+		if (count <= 0 || maxSize <= 0) {
+			return;
+		}
+
+		int step = Math.max(1, maxSize / count);
+		for (int i = 1; i <= count; i++) {
+			int n = Math.min(maxSize, i * step);
+			if (n <= 0) {
+				continue;
 			}
-			System.out.print("]");
-			long startTime = System.nanoTime();
-			Arrays.sort(array);
-			long endTime = System.nanoTime();
-			rt.add(endTime - startTime);
-			System.out.println(i + " Runtime" + rt.get(i));
-			
-			
-		}	
+
+			long largestTime = 0;
+			for (int x = 0; x < 10; x++) {
+				int[] array = randomizeArray(genArray(n));
+				long start = System.nanoTime();
+				Arrays.sort(array);
+				long elapsed = System.nanoTime() - start;
+				if (elapsed > largestTime) {
+					largestTime = elapsed;
+				}
+			}
+
+			double nSquared = (double) n * n;
+			double nLogN = (double) n * (Math.log(n) / Math.log(2.0));
+			System.out.println("n = " + n + ", T(n) = " + largestTime + " ns, T(n)/(n^2) = "
+				+ (largestTime / nSquared) + ", T(n)/(n log2 n) = " + (largestTime / nLogN));
+		}
 	}
 	
 	/**
@@ -57,7 +66,7 @@ public class AlgAnalysis {
 	 * @return time taken in nano seconds
 	 */
 	public static long unique1Runtime(int n){
-		// add your code here (part 2)0
+		
 		return 0;
 	}
 	
@@ -68,7 +77,7 @@ public class AlgAnalysis {
 	 * @return time taken in nano seconds
 	 */
 	public static long unique2Runtime(int n){
-		// add your code here (part 2)
+		
 		return 0;
 	}
 	
