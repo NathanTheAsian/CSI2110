@@ -1,0 +1,286 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,tabularx,listings,xcolor,hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black}
+\lstset{basicstyle=\ttfamily\small,columns=fullflexible,keepspaces=true,breaklines=true,frame=single}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{2em}
+\title{CSI 2110 --- Lecture 4\\Trees and Binary Trees}
+\author{Study notes based on Bo Sun's Fall 2026 lecture}
+\date{}
+\begin{document}
+\maketitle
+\textbf{Source:} \texttt{lec04-tree and binary tree.pdf}, 82 PDF pages. References count PDF pages, not printed slide numbers. Pseudocode includes missing-child and parent-link details; review answers supplement the slides. Heights and depths count \emph{edges}; logarithms are base $2$.
+
+\section{From graphs to rooted trees}
+\textit{Source: pp.\ 5--11, 19--20.}
+
+A graph $G=(V,E)$ consists of vertices and edges joining vertex pairs. A path follows adjacent vertices. In the standard undirected-tree setting, a simple path has no repeated vertices, and a cycle closes without repeating intermediate vertices. A graph is connected when every pair of vertices is joined by a path.
+
+A \textbf{tree} is a connected, acyclic graph. It has two key properties:
+\begin{enumerate}
+\item There is exactly one simple path between any two vertices. Connectivity gives existence; two distinct simple paths would create a cycle.
+\item A nonempty tree with $n$ nodes has $n-1$ edges. After choosing a root, each nonroot node contributes exactly one edge to its parent.
+\end{enumerate}
+
+Choosing a \textbf{root} establishes a hierarchy:
+\begin{itemize}
+\item A node's \textbf{parent} is the preceding node on the path from the root; the root has no parent. Its \textbf{children} are the nodes immediately below it.
+\item \textbf{Siblings} share a parent. \textbf{Ancestors} are parents, grandparents, and so on; \textbf{descendants} are children, grandchildren, and so on.
+\item An \textbf{internal node} has at least one child; an \textbf{external node} or \textbf{leaf} has none.
+\item The \textbf{subtree rooted at $v$} contains $v$ and all its descendants.
+\item \textbf{Depth} is the number of edges from the root. The root has depth $0$.
+\item A node's \textbf{height} is the longest downward path to a leaf. A leaf has height $0$. The tree's height is the root's height, equivalently the maximum node depth.
+\end{itemize}
+
+\section{Binary tree families}
+\textit{Source: pp.\ 13--17.}
+
+A \textbf{binary tree} has at most two children per node, distinguished as left and right. Even a sole child has a left/right designation.
+\begin{center}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+Type & Additional condition\\
+\midrule
+Full (proper) & Every node has either zero or two children.\\
+Perfect & Full, with all leaves at the same depth.\\
+Complete & Every level above the last is full; the last level is filled from left to right without gaps.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+A perfect tree is both full and complete. A full tree need not be complete or have logarithmic height. A complete tree can have one node with only a left child, so it need not be full. A binary tree is not automatically a binary \emph{search} tree; ordering of stored keys is a separate property.
+
+Binary decision trees put yes/no questions at internal nodes and outcomes at leaves. Arithmetic-expression trees put binary operators at internal nodes and operands at leaves, naturally giving full binary trees.
+
+\section{Counting properties}
+\textit{Source: pp.\ 22--33.}
+Let $n$ be the number of nodes, $n_I$ the number of internal nodes, $n_E$ the number of leaves, and $h$ the height. All formulas in this section assume a nonempty tree.
+
+\subsection{Any binary tree}
+At depth $i$ there are at most $2^i$ nodes, so
+\[
+h+1\le n\le 2^{h+1}-1,\qquad
+1\le n_E\le2^h,\qquad
+h\le n_I\le2^h-1.
+\]
+A longest root-to-leaf path has $h+1$ nodes, of which $h$ are internal. Summing the maximum level sizes gives the upper bound on $n$. Inverting the bounds gives
+\[
+\lceil\log_2(n+1)\rceil-1\le h\le n-1.
+\]
+The ceiling makes the integer lower bound explicit. A chain attains the maximum possible height; a perfect tree attains the maximum node count for a given height.
+
+\subsection{Full binary trees}
+Every internal node contributes two child edges. Counting edges both ways gives
+\[
+2n_I=n-1=n_I+n_E-1\quad\Longrightarrow\quad n_E=n_I+1.
+\]
+Consequently,
+\[
+n_E=\frac{n+1}{2},\qquad n_I=\frac{n-1}{2},
+\]
+and the total node count is odd. Also,
+\[
+2h+1\le n\le2^{h+1}-1,\qquad h+1\le n_E\le2^h,
+\]
+\[
+\lceil\log_2(n+1)\rceil-1\le h\le\frac{n-1}{2}.
+\]
+A long chain of internal nodes, each with an extra leaf child, shows why fullness alone does not guarantee a short tree.
+
+\subsection{Perfect and complete trees}
+For a perfect tree:
+\[
+n=2^{h+1}-1,\qquad n_E=2^h,\qquad n_I=2^h-1,
+\qquad h=\log_2(n+1)-1.
+\]
+For a complete tree, the full levels above the last contain $2^h-1$ nodes, and the last level contains between $1$ and $2^h$ nodes:
+\[
+2^h\le n\le2^{h+1}-1
+\quad\Longrightarrow\quad h=\lfloor\log_2 n\rfloor.
+\]
+\textbf{Example:} at height $3$, a binary tree has $4$--$15$ nodes; a full binary tree has $7$--$15$ nodes with odd total; a complete tree has $8$--$15$ nodes; a perfect tree has exactly $15$.
+
+\section{Tree ADTs}
+\textit{Source: pp.\ 35--36.}
+The general Tree ADT provides \texttt{root()}, \texttt{parent(p)}, \texttt{children(p)}, \texttt{size()}, \texttt{isEmpty()}, and tests such as \texttt{isRoot}, \texttt{isInternal}, and \texttt{isExternal}. It can expose positions/elements and operations that replace or swap stored elements. \texttt{root()} returns null on an empty tree and \texttt{parent(root)} returns null.
+
+The Binary Tree ADT adds \texttt{leftChild(p)}, \texttt{rightChild(p)}, and \texttt{sibling(p)}. Updates depend on the application. Exchanging stored elements does not exchange the underlying subtrees or change the tree shape.
+
+\section{Traversals}
+\textit{Source: pp.\ 37--59, 65--68.}
+A traversal visits each node once in a specified order. Fix a left-to-right child order whenever the tree has ordered children.
+
+\subsection{Breadth-first traversal: queue}
+\begin{lstlisting}
+breadthFirst(root):
+    if root = null: return
+    Q <- empty queue
+    Q.enqueue(root)
+    while not Q.isEmpty():
+        v <- Q.dequeue()
+        visit(v)
+        for each child w of v, from left to right:
+            Q.enqueue(w)
+\end{lstlisting}
+The queue processes one level before the next. With constant-time visits and queue operations, time is $\Theta(n)$. Auxiliary space is $O(w)$, where $w$ is maximum level width, hence $O(n)$ in the worst case and $O(1)$ for a chain. The queue can hold parts of two consecutive levels; its size is not always exactly the width of one level.
+
+\subsection{Depth-first traversal: recursion}
+For a general rooted tree, preorder visits the root before recursively processing its children; postorder visits it after its children. Binary trees also have inorder:
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Traversal & Visit order\\
+\midrule
+Preorder & Root, left subtree, right subtree\\
+Inorder & Left subtree, root, right subtree\\
+Postorder & Left subtree, right subtree, root\\
+\bottomrule
+\end{tabular}
+\end{center}
+For a general binary tree, explicitly handle absent children:
+\begin{lstlisting}
+preOrder(v):
+    if v = null: return
+    visit(v)
+    preOrder(v.left)
+    preOrder(v.right)
+
+inOrder(v):
+    if v = null: return
+    inOrder(v.left)
+    visit(v)
+    inOrder(v.right)
+
+postOrder(v):
+    if v = null: return
+    postOrder(v.left)
+    postOrder(v.right)
+    visit(v)
+\end{lstlisting}
+All three take $\Theta(n)$ time for constant-time visits. Recursive auxiliary space is $O(h+1)$: $O(\log n)$ for a balanced binary tree and $O(n)$ for a chain. The $n$ total recursive calls do not all coexist on the stack.
+
+\subsection{Worked traversal from the lecture}
+The tree on PDF p.\ 46 is:
+\begin{lstlisting}
+            A
+          /   \
+         B     G
+        / \   / \
+       C   D H   I
+          / \
+         E   F
+\end{lstlisting}
+\begin{itemize}
+\item Breadth-first: A, B, G, C, D, H, I, E, F.
+\item Preorder: A, B, C, D, E, F, G, H, I.
+\item Inorder: C, B, E, D, F, A, H, G, I.
+\item Postorder: C, E, F, D, B, H, I, G, A.
+\end{itemize}
+For example, inorder completely processes B's subtree before A, so the output begins C, B, E, D, F.
+
+\subsection{Iterative preorder and Euler tour}
+An explicit stack implements preorder as follows:
+\begin{lstlisting}
+S <- empty stack
+if root != null: S.push(root)
+while not S.isEmpty():
+    v <- S.pop()
+    visit(v)
+    if v.right != null: S.push(v.right)
+    if v.left != null: S.push(v.left)
+\end{lstlisting}
+Push the right child first so that the left child is popped first. For a binary tree the stack requires $O(h+1)$ space.
+
+An \textbf{Euler tour} provides three events at each non-null node: before its left subtree, between its left and right subtrees, and after its right subtree. Recording the first, second, or third event produces preorder, inorder, or postorder respectively.
+
+\section{Applications of traversals}
+\textit{Source: pp.\ 42--43, 60--64.}
+\begin{itemize}
+\item \textbf{Structured document:} preorder prints a heading before its subsections. Depth controls indentation. Traversal overhead is linear; printing indentation also costs time proportional to the amount printed.
+\item \textbf{Directory sizes:} postorder obtains child totals before combining them at the parent. Sum file sizes; include directory metadata only if the chosen definition counts it.
+\item \textbf{Subtree height:} postorder combines child heights. Using an empty-subtree height of $-1$ handles absent children uniformly.
+\end{itemize}
+\begin{lstlisting}
+height(v):
+    if v = null: return -1
+    return 1 + max(height(v.left), height(v.right))
+\end{lstlisting}
+A leaf then has height $1+\max(-1,-1)=0$. Computing the root's height visits all nodes, taking $\Theta(n)$ time.
+
+\subsection{Arithmetic-expression trees}
+For $2(a-1)+3b$, preorder gives prefix notation and postorder gives postfix notation:
+\begin{lstlisting}
+Prefix:   + * 2 - a 1 * 3 b
+Postfix:  2 a 1 - * 3 b * +
+\end{lstlisting}
+Plain inorder does not preserve grouping. Print parentheses around each internal node's expression to obtain $((2\times(a-1))+(3\times b))$.
+\begin{lstlisting}
+printExpr(v):
+    if v is a leaf:
+        print(v.element)
+    else:
+        print("(")
+        printExpr(v.left)
+        print(v.element)
+        printExpr(v.right)
+        print(")")
+
+evalExpr(v):
+    if v is a leaf: return value of v.element
+    x <- evalExpr(v.left)
+    y <- evalExpr(v.right)
+    return apply(v.element, x, y)
+\end{lstlisting}
+Evaluation is postorder because operands must be available before applying an operator. For $a=5,b=2$, the result is $2(5-1)+3(2)=14$. Time is $\Theta(n)$ under constant-time arithmetic.
+
+\section{Implementations}
+\textit{Source: pp.\ 70--81.}
+
+\subsection{Linked binary tree}
+Each node stores its element, parent, left child, and right child. Parent/child access, sibling lookup, and element replacement or swapping take $O(1)$ given valid positions. Sibling lookup must first handle the root, whose parent is null. Storage is $O(n)$.
+
+\texttt{expandExternal(v)} changes a leaf into an internal node with two new children. Set both child links and both children's parent links, and increase size by two. This takes $O(1)$.
+
+The lecture uses \texttt{removeAboveExternal} and later \texttt{removeExternal} for the operation that removes a leaf $v$ \emph{and its parent}, promoting $v$'s sibling $s$:
+\begin{enumerate}
+\item Require a nonroot leaf whose parent has another child $s$ (as in a full tree).
+\item If the parent is the root, set root to $s$ and set \texttt{s.parent = null}.
+\item Otherwise, replace the grandparent's link to the parent with $s$, and set \texttt{s.parent = grandparent}.
+\item Decrease size by two and invalidate the removed positions.
+\end{enumerate}
+The operation is $O(1)$. Updating the promoted sibling's parent link is essential even though it is omitted in the nonroot pseudocode on PDF p.\ 74.
+
+\subsection{Array representation}
+Number slots from zero:
+\[
+\operatorname{left}(i)=2i+1,\quad
+\operatorname{right}(i)=2i+2,\quad
+\operatorname{parent}(i)=\left\lfloor\frac{i-1}{2}\right\rfloor\quad(i>0).
+\]
+For a complete tree of size $n$, occupied indices are exactly $0,\ldots,n-1$; a child exists only if its index is \emph{less than} $n$. For an arbitrary sparse tree, check array bounds and whether the slot is occupied: the number of nodes is not the array's maximum index.
+
+A right-only chain of $n$ nodes reaches index $2^n-2$, requiring array length $2^n-1$. Thus this representation can waste exponential space on a sparse tree. Promoting a subtree can also require moving all its descendants to different slots. Complete trees, including heaps, avoid these gaps.
+
+\subsection{General trees and first-child/next-sibling encoding}
+A general linked tree stores an element, parent, and a collection of child references. Another representation uses two links per node:
+\begin{itemize}
+\item Left link points to the node's \textbf{first child}.
+\item Right link points to its \textbf{next sibling}.
+\end{itemize}
+The root is unchanged. Traversing right links enumerates siblings; it does not descend to children of the original general tree. This encoding preserves preorder with consistent child ordering, but original depths and parent relationships cannot be read as ordinary binary-tree depths and parents.
+
+\section{Quick review}
+\begin{enumerate}
+\item A full tree has $10$ internal nodes. How many leaves and total nodes?\\
+\textbf{Answer:} $11$ leaves and $21$ nodes.
+\item A complete tree has $12$ nodes. What is its height?\\
+\textbf{Answer:} $\lfloor\log_2 12\rfloor=3$.
+\item Which traversal evaluates an expression tree?\\
+\textbf{Answer:} postorder, because child values are computed before the operator.
+\item Why must iterative preorder push right before left?\\
+\textbf{Answer:} the stack is LIFO, so left must be pushed last to be visited next.
+\item Does inorder always output sorted keys?\\
+\textbf{Answer:} no. That requires the binary-search-tree ordering property, which an arbitrary binary tree does not have.
+\end{enumerate}
+\end{document}
