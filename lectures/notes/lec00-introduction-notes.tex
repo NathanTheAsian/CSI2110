@@ -1,0 +1,157 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
+\definecolor{accent}{RGB}{25,65,100}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
+\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
+\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
+\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
+\newcommand{\cost}[1]{\ensuremath{O(#1)}}
+\newcommand{\method}[1]{\texttt{#1}}
+
+\title{\textbf{Lecture 0: Introduction}\\[3pt]\large CSI2110 -- Data Structures and Algorithms}
+\author{Lecture study notes}\date{}\begin{document}\maketitle
+\textbf{Source document:} \path{../lec00-introduction.pdf}.
+These notes synthesize the source and add worked explanations. Page references use PDF page numbers, which can differ from printed slide numbers. Pseudocode is normalized for readability and boundary cases.
+\tableofcontents\newpage
+
+\section{What this course studies}
+\sourcepages{2--13}
+An \textbf{algorithm} describes steps for solving a problem; a \textbf{data structure} stores and organizes data so the required operations can run efficiently. CSI2110 focuses on choosing structures, implementing algorithms in Java, and explaining their time and space costs mathematically.
+
+A phone book stores names and phone numbers and supports insert, delete, and lookup. An unordered list, ordered list, or tree can represent the same information while giving different operation costs. A map of buildings and distances naturally uses a graph and supports questions such as shortest routes.
+
+\keyidea{Distinguish logical organization from physical implementation. A list, tree, graph, set, or map describes relationships; arrays, linked nodes, and adjacency lists describe ways to store those relationships.}
+
+\section{Arrays}
+\sourcepages{29--33}
+An array is an indexed sequence with a fixed capacity. If the capacity is $N$, legal indices are $0,\ldots,N-1$. An array of primitives stores primitive values; an array of objects stores references. Java initializes an \method{int[]} with zeroes and an object-reference array with \method{null}.
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Java]
+int[] x = {3, 1, 7, 5};
+int[] y = new int[4];  // {0, 0, 0, 0}
+\end{lstlisting}
+\end{minipage}\par
+\textbf{Size versus capacity:} $n$ is the number of logically stored entries; $N$ is the number of allocated slots. They need not be equal.
+
+\subsection{Access and updates}
+\begin{itemize}
+\item Reading or replacing the value at a known index uses direct access: $O(1)$.
+\item To insert at index $i$ in an ordered sequence, shift entries $i,\ldots,n-1$ one slot right. Shift from right to left so values are not overwritten.
+\item To remove index $i$, shift entries $i+1,\ldots,n-1$ one slot left.
+\item If an insertion would exceed capacity, allocate a larger array and copy existing entries. A resize takes $\Theta(n)$ time.
+\end{itemize}
+\textbf{Example:} starting with $[3,1,5]$, inserting $7$ at index $2$ produces $[3,1,7,5]$ after shifting $5$. Removing index $1$ then gives $[3,7,5]$.
+
+\section{Singly linked lists}
+\sourcepages{34--38,43}
+Each node stores an element and a reference to the next node. The head refers to the first node; the last node has a null next reference. Nodes need not occupy consecutive memory locations.
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+head -> [3 | next] -> [1 | next] -> [7 | next] -> [5 | null]
+\end{lstlisting}
+\end{minipage}\par
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Java]
+class Node<E> {
+    E element;
+    Node<E> next;
+    Node(E e, Node<E> n) { element = e; next = n; }
+}
+\end{lstlisting}
+\end{minipage}\par
+Generics allow the same structure to hold different reference types, such as \method{Integer} or \method{String}. Java generics use wrapper types rather than primitives.
+
+\subsection{Local insertion and deletion}
+Given a predecessor \method{pred}, insert immediately after it:
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+newNode = new Node(e, pred.next)
+pred.next = newNode
+\end{lstlisting}
+\end{minipage}\par
+The order matters: save the successor before changing the predecessor's next reference.
+
+Given the predecessor of a node to delete:
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+pred.next = pred.next.next
+\end{lstlisting}
+\end{minipage}\par
+Both changes take $O(1)$ once the predecessor is known. Finding the node at index $i$ requires traversal and takes $O(i+1)$, hence $O(n)$ in the worst case. Removing the head is a separate case: \method{head = head.next}.
+
+\subsection{What a tail reference does}
+A tail reference permits appending in $O(1)$: link the old tail to the new node and update the tail. Without a tail, appending requires traversal. A tail reference alone does \emph{not} permit constant-time removal of the tail, because its predecessor is not directly accessible. That operation still takes $O(n)$.
+
+When the list becomes empty, both head and tail must be null. When inserting into an empty list, both must refer to the new node. A cached size field permits $O(1)$ \method{size()}.
+
+\section{Doubly linked lists}
+\sourcepages{39--42}
+A doubly linked node stores an element, a previous reference, and a next reference. With references to both ends, traversal is possible in both directions.
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+null <- [3] <-> [1] <-> [7] <-> [5] -> null
+\end{lstlisting}
+\end{minipage}\par
+To insert $e$ between adjacent nodes \method{pred} and \method{succ}:
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+n = new Node(pred, e, succ)
+pred.next = n
+succ.prev = n
+\end{lstlisting}
+\end{minipage}\par
+To delete an interior node \method{x}:
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+x.prev.next = x.next
+x.next.prev = x.prev
+\end{lstlisting}
+\end{minipage}\par
+Local updates take $O(1)$ when the relevant nodes are known. Index-based lookup still takes $O(n)$ in the worst case. Compared with a singly linked list, each node uses an extra reference.
+
+\textbf{Sentinels:} a header before the first element and a trailer after the last element simplify updates. They store no user elements. An empty sentinel list has \method{header.next = trailer} and \method{trailer.prev = header}.
+
+\section{Choosing an implementation}
+\sourcepages{44}
+\begin{center}\small
+\begin{tabular}{@{}lccc@{}}\toprule
+Operation & Array sequence & Singly linked$^*$ & Doubly linked$^*$\\\midrule
+Access by index & $O(1)$ & $O(n)$ & $O(n)$\\
+Insert/remove in middle & $O(n)$ & $O(1)$ local & $O(1)$ local\\
+Append at end & $O(1)$ if room & $O(1)$ & $O(1)$\\
+Remove last & $O(1)$ & $O(n)$ & $O(1)$\\
+Storage & $O(N)$ & $O(n)$ & $O(n)$\\\bottomrule
+\end{tabular}\end{center}
+$^*$Assume a tail reference; singly linked local deletion requires the predecessor. An array resize costs $O(n)$. Lookup costs must be added to any local pointer change.
+
+\section{Course logistics recorded in the slides}
+\sourcepages{16--26}
+This section records the supplied Fall 2026 slides; consult Brightspace for subsequent changes.
+\begin{itemize}
+\item Two lectures, one lab, and one tutorial per week. Lectures develop theory; labs practice Java; tutorials practice written reasoning.
+\item Assessment weights: written assignments $15\%$, programming assignments $15\%$, midterm $30\%$, final $40\%$, plus up to $2\%$ lab bonus.
+\item The slides list the midterm on November 7, 9:30--11:30 a.m.; programming assignments in October and November.
+\item Let $A,P,M,F,B$ be weighted percentage-point contributions. If $(M+F)/70\geq0.5$, the stated grade is $A+P+M+F+B$; otherwise it is $100(M+F)/70$.
+\item Assignments are individual and submitted through Brightspace. The stated late penalty is $30\%$ within 24 hours; submissions after 24 hours are not accepted.
+\item Exams are closed-book. At least $50\%$ on the weighted exam component is needed to pass. An approved missed midterm shifts its weight to the final.
+\item Labs are released Thursday at 4 p.m., due the following Thursday at 11:59 p.m., and require in-person TA grading within two weeks of the deadline. Session-specific details are on Brightspace.
+\item Instructor office hours in the slides: Tuesday 3--4 p.m. and Thursday 2--3 p.m., SITE 4021. TA office hours are on Brightspace; email replies may take two business days.
+\item The slides prohibit generative AI in submissions and require references for reused Internet code. These documents are study notes.
+\end{itemize}
+
+\section{Study checks}
+\begin{enumerate}
+\item Why is array access $O(1)$ but linked-list access by index $O(n)$? \textbf{Answer:} an index directly identifies an array slot; a list requires following links.
+\item Is linked-list insertion always $O(1)$? \textbf{Answer:} only the pointer update is; locating an insertion position can take $O(n)$.
+\item Why does a doubly linked list make tail deletion fast? \textbf{Answer:} \method{tail.prev} directly identifies the new tail.
+\item What happens when an array is full? \textbf{Answer:} allocate more space and copy, or reject insertion in a fixed-capacity implementation.
+\end{enumerate}
+
+\end{document}
