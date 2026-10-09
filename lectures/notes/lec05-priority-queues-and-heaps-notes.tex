@@ -1,0 +1,285 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,tabularx,listings,xcolor,hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black}
+\lstset{basicstyle=\ttfamily\small,columns=fullflexible,keepspaces=true,breaklines=true,frame=single}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{2em}
+\title{CSI 2110 --- Lecture 5\\Priority Queues and Heaps}
+\author{Study notes based on Bo Sun's Fall 2026 lecture}
+\date{}
+\begin{document}
+\maketitle
+\textbf{Source:} \texttt{lec05-priority and heap.pdf}, 84 PDF pages. References count PDF pages. Animation steps are consolidated into traces. Pseudocode uses explicit boundaries and stops on equal keys; explanatory details and review answers supplement the slides. All logarithms are base $2$.
+
+\section{Priority queue ADT}
+\textit{Source: pp.\ 4--9.}
+
+A priority queue (PQ) stores entries $(k,v)$, consisting of a \textbf{key} specifying priority and a \textbf{value} containing the associated data. Entries can arrive in any order. In a min-priority queue, the entry with the smallest key is served first, such as the bill with the earliest deadline.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+Method & Behavior\\
+\midrule
+\texttt{insert(k,v)} & Insert an entry.\\
+\texttt{min()} & Return an entry with minimum key without removing it.\\
+\texttt{removeMin()} & Remove and return an entry with minimum key.\\
+\texttt{size()}, \texttt{isEmpty()} & Inspect the number of entries.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+The lecture returns null for \texttt{min} or \texttt{removeMin} on an empty PQ. Distinct entries may have equal keys. The basic ADT does not guarantee FIFO order for ties; add an arrival sequence number to the comparison key if that is required.
+
+An \texttt{Entry<K,V>} exposes \texttt{getKey()} and \texttt{getValue()}. Key and value are distinct: a key comparison must not accidentally compare payloads.
+
+\section{Comparators and ordering}
+\textit{Source: pp.\ 10--13.}
+A comparator's \texttt{compare(x,y)} returns a negative integer, zero, or a positive integer according as $x$ is before, equivalent to, or after $y$ under the chosen order. An external comparator allows the same key type to be prioritized in different ways.
+
+A total order satisfies comparability, antisymmetry, and transitivity. Examples include numeric order and lexicographic order. For coordinate pairs,
+\[
+(x_1,y_1)\le(x_2,y_2)
+\iff x_1<x_2\ \text{or}\ (x_1=x_2\ \text{and}\ y_1\le y_2).
+\]
+String lexicographic order compares the first differing character; a proper prefix sorts before the longer string.
+
+\textbf{Clarification of the length example:} comparing strings only by length ties distinct strings such as ``cat'' and ``dog''. This orders length-based equivalence classes, rather than being an antisymmetric total order on the distinct strings themselves. It is still a usable priority comparator. Add a lexicographic tie-breaker when distinct strings need a total order.
+
+Safer Java comparison code avoids subtraction, which may overflow:
+\begin{lstlisting}[language=Java]
+public int compare(Point2D a, Point2D b) {
+    int c = Integer.compare(a.getX(), b.getX());
+    return c != 0 ? c : Integer.compare(a.getY(), b.getY());
+}
+// Reverse numeric priority:
+// Comparator<Integer> reverse = (x, y) -> Integer.compare(y, x);
+\end{lstlisting}
+
+\section{List implementations}
+\textit{Source: pp.\ 15--20.}
+
+\subsection{Unsorted positional list}
+Append an entry in $O(1)$ time. To find the minimum, scan every entry and keep the position of the smallest key. Given that position, removal itself is $O(1)$, but finding it makes \texttt{removeMin} take $\Theta(n)$.
+
+This implementation scans even if entries happen to arrive sorted: it does not maintain or exploit a sorted-order invariant.
+
+\subsection{Sorted positional list}
+Maintain nondecreasing keys. To insert, traverse to the insertion position and then splice in the entry. The search takes $O(n)$ worst-case time. The first position always contains a minimum, so both \texttt{min} and \texttt{removeMin} take $O(1)$.
+
+The tradeoff is where the work happens: unordered storage makes insertion cheap, while ordered storage makes extraction cheap. Both use $O(n)$ space.
+
+\section{Heap invariants and array representation}
+\textit{Source: pp.\ 22--24, 53.}
+A \textbf{min-heap} satisfies two independent invariants:
+\begin{enumerate}
+\item \textbf{Shape:} a complete binary tree.
+\item \textbf{Heap order:} every parent key is at most each of its children's keys.
+\end{enumerate}
+The root contains a minimum because keys never decrease on a path away from it. There is no required ordering between siblings or between unrelated subtrees. The heap array is generally not sorted. A max-heap reverses the inequality.
+
+For $n\ge1$, completeness gives $h=\lfloor\log_2 n\rfloor$. Store entries in level order in $A[0\ldots n-1]$:
+\[
+\operatorname{left}(i)=2i+1,\quad
+\operatorname{right}(i)=2i+2,\quad
+\operatorname{parent}(i)=\left\lfloor\frac{i-1}{2}\right\rfloor\ (i>0).
+\]
+A child exists when its index is less than $n$. Indices $\lfloor n/2\rfloor,\ldots,n-1$ are leaves. The last internal index is $\lfloor n/2\rfloor-1$.
+
+With one-based indexing, the formulas instead are left $2i$, right $2i+1$, and parent $\lfloor i/2\rfloor$; do not mix the conventions.
+
+\section{Heap insertion: append and bubble upward}
+\textit{Source: pp.\ 34--38.}
+Append the new entry at the next available array slot to preserve completeness. Only the new entry's path to the root can violate heap order.
+\begin{lstlisting}
+insert(k,v):
+    append Entry(k,v) to A
+    upHeap(length(A)-1)
+
+upHeap(j):
+    while j > 0:
+        p <- floor((j-1)/2)
+        if key(A[p]) <= key(A[j]): return
+        swap A[p], A[j]           // swap entire entries
+        j <- p
+\end{lstlisting}
+There are at most $h$ swaps, giving $O(\log n)$ heap-repair time. Equality already satisfies the invariant, so no swap is needed for equal keys.
+
+\textbf{Lecture trace.} Start with
+\begin{lstlisting}
+[3,4,7,21,10,20,8,22,28,13,19,25]
+\end{lstlisting}
+Insert key $6$ at index $12$. Its parent is index $5$ (key $20$); swap. Its new parent is index $2$ (key $7$); swap again. The root has key $3$, so stop:
+\begin{lstlisting}
+[3,4,6,21,10,7,8,22,28,13,19,25,20]
+\end{lstlisting}
+This trace follows the insertion example on pp.\ 34--38. The removal example below uses the separate starting heap shown on p.\ 26.
+
+\section{Remove-min: replace root and bubble downward}
+\textit{Source: pp.\ 26--33.}
+Save the root entry, move the last entry to the root, and remove the last slot. This preserves shape, but the new root may violate heap order. Repair downward:
+\begin{lstlisting}
+removeMin():
+    if length(A) = 0: return null
+    result <- A[0]
+    swap A[0], A[length(A)-1]
+    remove last entry of A
+    if length(A) > 0:
+        downHeap(0,length(A))
+    return result
+
+downHeap(j,size):               // size is an exclusive bound
+    while 2*j+1 < size:
+        c <- 2*j+1             // left child exists
+        if c+1 < size and key(A[c+1]) < key(A[c]):
+            c <- c+1           // select smaller child
+        if key(A[j]) <= key(A[c]): return
+        swap A[j], A[c]
+        j <- c
+\end{lstlisting}
+Choose the \textbf{smaller child}. If the parent is $20$ and its children are $4$ and $6$, swapping with $6$ leaves $6>4$ at the repaired position. Choosing $4$ establishes heap order there; any remaining violation travels downward.
+
+Down-heap stops at a leaf or when the current key is at most both children. It takes at most $h$ swaps, or $O(\log n)$ time. A single-entry removal simply leaves an empty heap.
+
+\textbf{Lecture trace.} Begin with
+\begin{lstlisting}
+[3,4,6,21,10,7,20,22,28,13,19,25,20]
+\end{lstlisting}
+Remove $3$ and move the last $20$ to index $0$. Its downward path chooses $4$, then $10$, then $13$, yielding
+\begin{lstlisting}
+[4,10,6,21,13,7,20,22,28,20,19,25]
+\end{lstlisting}
+
+\subsection{PQ complexity comparison}
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+Operation & Unsorted list & Sorted list & Binary heap\\
+\midrule
+\texttt{insert} & $O(1)$ & $O(n)$ & $O(\log n)$\\
+\texttt{min} & $\Theta(n)$ & $O(1)$ & $O(1)$\\
+\texttt{removeMin} & $\Theta(n)$ & $O(1)$ & $O(\log n)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+The heap's worst-case insertion bound assumes an available array slot. A doubling-array resize can make one insertion $O(n)$; across a sequence, insertion remains $O(\log n)$ amortized. Iterative repairs use $O(1)$ auxiliary space; storage for the entries is $O(n)$ with a proportional-capacity array. A heap does not promise fast search for an arbitrary value.
+
+\section{Heap construction}
+\textit{Source: pp.\ 41--59.}
+
+\subsection{Repeated insertion}
+Insert $n$ entries one by one. The worst-case work is
+\[
+O\!\left(\sum_{k=1}^n\log k\right)=O(n\log n).
+\]
+Some inputs require much less bubbling, but this is the worst-case upper bound.
+
+\subsection{Bottom-up construction}
+Every leaf is already a heap. Process internal nodes from the last one back to the root:
+\begin{lstlisting}
+buildHeap(A):
+    n <- length(A)
+    for i <- floor(n/2)-1 down to 0:
+        downHeap(i,n)
+\end{lstlisting}
+\textbf{Invariant:} when processing $i$, both child subtrees are already heaps. Therefore only $i$ may violate the heap property, and down-heap repairs the entire subtree. Processing in the opposite direction would not establish this precondition.
+
+\subsection{Why bottom-up is linear}
+Bounding every down-heap by $O(\log n)$ gives a valid but loose $O(n\log n)$ bound. Most nodes are close to leaves and cannot move far.
+
+For a height-$h$ complete tree, depth $i$ contains at most $2^i$ nodes, each moving at most $h-i$ levels. Total swaps are bounded by
+\begin{align*}
+\sum_{i=0}^{h-1}(h-i)2^i
+&=2^h\sum_{j=1}^h\frac{j}{2^j}\\
+&\le 2^h\cdot2\le2n.
+\end{align*}
+The infinite sum $\sum_{j\ge1}j/2^j=2$ bounds the finite sum. Including constant overhead per processed node, construction takes $O(n)$; the loop over $\lfloor n/2\rfloor$ internal nodes also supplies a linear lower bound, so the time is $\Theta(n)$.
+
+\subsection{Worked bottom-up example}
+For the input on p.\ 41,
+\begin{lstlisting}
+[21,10,7,4,13,28,19,25,22,3,20,8]
+\end{lstlisting}
+process indices $5,4,3,2,1,0$. Down-heap at $5$ exchanges $28$ and $8$; at $4$ exchanges $13$ and $3$; at $3$ and $2$ no change is needed; at $1$ exchanges $10$ and $3$; at $0$ moves $21$ past $3$ and $4$. The result is
+\begin{lstlisting}
+[3,4,7,21,10,8,19,25,22,13,20,28]
+\end{lstlisting}
+
+The larger exercise on pp.\ 54--59 starts with
+\begin{lstlisting}
+[14,9,8,25,5,11,27,16,15,4,12,6,7,23,20]
+\end{lstlisting}
+and processes indices $6$ through $0$. Its final heap is
+\begin{lstlisting}
+[4,5,6,15,9,7,20,16,25,14,12,11,8,23,27]
+\end{lstlisting}
+Check both properties: the occupied array is contiguous, and each parent is no larger than either existing child. Different valid construction methods can produce different heaps for the same multiset.
+
+\section{Priority-queue sorting}
+\textit{Source: pp.\ 61--64, 82.}
+Insert all values as keys, then repeatedly remove the minimum and append its key to the output. The PQ implementation determines the time:
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+PQ representation & Build/insert & Extract all & Total worst case\\
+\midrule
+Unsorted list & $O(n)$ & $\Theta(n^2)$ & $\Theta(n^2)$\\
+Sorted list & $O(n^2)$ & $O(n)$ & $\Theta(n^2)$\\
+Heap, bottom-up & $\Theta(n)$ & $O(n\log n)$ & $\Theta(n\log n)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Unsorted-list extraction sums $n+(n-1)+\cdots+1$. Sorted-list insertion can sum $1+2+\cdots+n$. Heap extraction sums logarithmic costs.
+
+\textbf{Implementation detail:} do not repeatedly remove index $0$ from an ordinary array list to load the PQ: those shifts add quadratic time. Iterate over the input or build the heap directly from the array. A positional list with constant-time front removal also supports the lecture's generic PQSort outline efficiently.
+
+\section{In-place heap sort}
+\textit{Source: pp.\ 65--81.}
+To sort an array in \textbf{ascending} order, build a \textbf{max-heap}. The root is then the largest active element and can be placed at the right end.
+\begin{lstlisting}
+heapSort(A):
+    n <- length(A)
+    buildMaxHeap(A)
+    for end <- n-1 down to 1:
+        swap A[0], A[end]
+        downHeapMax(0,end)       // active indices are [0,end)
+
+downHeapMax(j,size):
+    while 2*j+1 < size:
+        c <- 2*j+1
+        if c+1 < size and A[c+1] > A[c]:
+            c <- c+1
+        if A[j] >= A[c]: return
+        swap A[j], A[c]
+        j <- c
+\end{lstlisting}
+\texttt{buildMaxHeap} uses the same reverse internal-node loop as min-heap construction, calling \texttt{downHeapMax}. The exclusive bound \texttt{end} excludes the value just placed into the sorted suffix.
+
+\textbf{Invariant:} before an extraction, the active prefix is a max-heap and the suffix is sorted, containing the largest elements in their final positions. Swap moves the largest active value to the front of that suffix. Down-heap restores the invariant on the shortened prefix.
+
+\textbf{Short trace.} Starting from the max-heap $[8,5,6,1,4]$:
+\begin{lstlisting}
+[6,5,4,1 | 8]       after first extraction and repair
+[5,1,4 | 6,8]       after second
+[4,1 | 5,6,8]       after third
+[1 | 4,5,6,8]       after fourth
+\end{lstlisting}
+The bar separates the active heap from the sorted suffix. The lecture's larger input $[4,1,7,9,3,10,14,8,2,16]$ becomes $[1,2,3,4,7,8,9,10,14,16]$.
+
+Building costs $\Theta(n)$; repeated repairs give $O(n\log n)$ and a worst-case $\Theta(n\log n)$ overall. With iterative down-heap, auxiliary space is $O(1)$. Ordinary in-place heap sort is not stable: equal-key entries can change relative order.
+
+\section{Quick review}
+\begin{enumerate}
+\item Why append at the end before up-heap?\\
+\textbf{Answer:} the next array slot preserves the complete-tree shape.
+\item Why not delete the root and shift every array entry left?\\
+\textbf{Answer:} shifts change parent-child relationships throughout the heap and cost linear time; replacing with the last entry localizes the repair.
+\item Why is bottom-up construction $\Theta(n)$ although a repair can cost $O(\log n)$?\\
+\textbf{Answer:} most nodes have small subtree height; summing their individual bounds gives linear work.
+\item Which heap type gives ascending in-place heap sort?\\
+\textbf{Answer:} a max-heap, because each extracted maximum is placed at the rightmost active slot.
+\item Does a heap fully sort its entries?\\
+\textbf{Answer:} no. Only ancestor-to-descendant priority is constrained.
+\end{enumerate}
+\end{document}

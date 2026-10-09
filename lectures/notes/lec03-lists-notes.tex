@@ -1,168 +1,225 @@
-\documentclass[11pt,letterpaper]{article}
-\usepackage[margin=0.7in]{geometry}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
-\definecolor{accent}{RGB}{25,65,100}
-\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,tabularx,listings,xcolor,hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black}
+\lstset{basicstyle=\ttfamily\small,columns=fullflexible,keepspaces=true,breaklines=true,frame=single}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{4pt}
-\setlength{\headheight}{14pt}
-\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
-\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
-\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
-\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
-\newcommand{\cost}[1]{\ensuremath{O(#1)}}
-\newcommand{\method}[1]{\texttt{#1}}
+\setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{2em}
+\title{CSI 2110 --- Lecture 3\\Lists, Resizing, and Positions}
+\author{Study notes based on Bo Sun's Fall 2026 lecture}
+\date{}
+\begin{document}
+\maketitle
+\textbf{Source:} \texttt{lec03-list.pdf}, 37 PDF pages. References use PDF page numbers. Worked explanations and review answers supplement the lecture.
 
-\title{\textbf{Lecture 3: Lists}\\\large CSI2110 -- Data Structures and Algorithms}\author{Lecture study notes}\date{}\begin{document}\maketitle
-\textbf{Source document:} \path{../lec03-list.pdf}. These notes synthesize the source and add worked explanations. References use PDF page numbers. Pseudocode includes boundary cases.
-\tableofcontents\newpage
+\section{Three views of a linear collection}
+\textit{Source: pp.\ 3--7, 17--19, 25.}
+\begin{itemize}
+\item \textbf{Array-list ADT:} access by integer index (rank). An element's index is the number of elements before it.
+\item \textbf{Positional-list ADT:} access by a position, a handle identifying a particular entry. Navigate relative to that position.
+\item \textbf{Sequence ADT:} combine indexed and positional operations, with conversions between them.
+\end{itemize}
+In $[A,B,C,D]$, let position $p$ refer to the entry containing C. Inserting X before $p$ gives $[A,B,X,C,D]$. C's index changes from $2$ to $3$, but $p$ still identifies the same entry. A position is not simply its current index.
 
-\section{Index, position, and sequence}
-\sourcepages{3--7,17--19,25}
-A list is a collection in linear order. An array-list ADT accesses entries by their zero-based index (rank). A positional-list ADT accesses an entry through a position: a handle to the entry, usually a node reference. A sequence ADT supports both and adds bridge methods.
+\section{Array-list ADT and implementation}
+\textit{Source: pp.\ 7--11.}
+For a list of size $n$:
+\begin{center}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+Operation & Valid indices & Effect\\
+\midrule
+\texttt{get(i)} & $0\le i<n$ & Return element $i$.\\
+\texttt{set(i,e)} & $0\le i<n$ & Replace element $i$; return the old element.\\
+\texttt{add(i,e)} & $0\le i\le n$ & Insert $e$ so its index becomes $i$.\\
+\texttt{remove(i)} & $0\le i<n$ & Remove element $i$.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+Invalid indices cause an error. \texttt{add(n,e)} is a valid append, but \texttt{get(n)} is invalid. \texttt{set} changes an existing element; \texttt{add} increases the size. Support methods are \texttt{size()} and \texttt{isEmpty()}.
 
-In $[A,B,C,D]$, $C$ has index $2$. Inserting $X$ before $C$ yields $[A,B,X,C,D]$. The index of $C$ becomes $3$, but a position $p$ identifying $C$ continues to identify the same entry.
-
-\section{Array-list ADT}
-\sourcepages{7--11}
-For size $n$, \method{get(i)}, \method{set(i,e)}, and \method{remove(i)} require $0\leq i<n$. Insertion \method{add(i,e)} permits $0\leq i\leq n$, including appending at $n$. Replacement returns the old element; removal returns the deleted element. \method{size()} and \method{isEmpty()} are support operations.
-
-From $[4,7,9]$, \method{set(1,5)} gives $[4,5,9]$ and returns $7$. Separately, \method{add(1,5)} gives $[4,5,7,9]$ and increases size.
-
-Represent entries in $V[0..n-1]$ of a capacity-$N$ array; maintain $0\leq n\leq N$.
-\par\noindent\begin{minipage}{\linewidth}
+Store elements in $V[0\ldots n-1]$ within an array of capacity $N\ge n$. Indexed access and replacement take $O(1)$ time.
 \begin{lstlisting}
-add(i, e):
-    validate 0 <= i <= n
-    ensure capacity for n + 1 entries
-    for j = n - 1 down to i:
-        V[j + 1] = V[j]
-    V[i] = e
-    n = n + 1
+add(i,e):                      // require 0 <= i <= n
+    ensure capacity for n+1 elements
+    for j <- n-1 down to i:
+        V[j+1] <- V[j]
+    V[i] <- e
+    n <- n+1
 
-remove(i):
-    validate 0 <= i < n
-    old = V[i]
-    for j = i to n - 2:
-        V[j] = V[j + 1]
-    n = n - 1
-    V[n] = null
-    return old
+remove(i):                     // require 0 <= i < n
+    result <- V[i]
+    for j <- i to n-2:
+        V[j] <- V[j+1]
+    n <- n-1
+    V[n] <- null
+    return result
 \end{lstlisting}
-\end{minipage}\par
-Insertion shifts $n-i$ entries, starting at the right to avoid overwriting values. Removal shifts $n-i-1$ entries. Both take $O(n)$ worst-case time. Access, replacement, size, and emptiness are $O(1)$. Without resizing, append and last removal are $O(1)$. Allocated space is $O(N)$.
+Insertion shifts $n-i$ elements; removal shifts $n-i-1$. Both take $O(n)$ in the worst case. Rightward shifts run from right to left, and leftward shifts run from left to right. Space is $O(N)$.
 
-\section{Extendable arrays and amortized cost}
-\sourcepages{13--15}
-When full, allocate a larger array, copy existing entries, and append. Let $T(m)$ be the total time of $m$ appends from an empty list of capacity one. Amortized time is $T(m)/m$.
+\section{Extendable arrays and amortized analysis}
+\textit{Source: pp.\ 13--15.}
+When an array is full, allocate a larger array, copy all $n$ elements, and replace the array reference. Appending without a resize costs $O(1)$; a resize costs $\Theta(n)$.
 
-\subsection{Fixed-increment growth}
-For new capacity $N+c$, where $c>0$ is fixed, copies form an arithmetic progression. With $c=2$, capacities are $1,3,5,7,\ldots$ and $k$ resizes copy
+\textbf{Amortized time} distributes the total cost of an entire operation sequence across its operations. Starting from an empty list of capacity $1$, let $T(m)$ be the total cost of $m$ appends. The amortized cost per append is $T(m)/m$. It is a deterministic sequence bound, not an average over random inputs.
+
+\subsection{Fixed increment: expensive total copying}
+If capacity grows by a fixed positive integer $c$, copied sizes form an arithmetic progression:
 \[
-1+3+\cdots+(2k-1)=k^2.
+1,\ 1+c,\ 1+2c,\ldots.
 \]
-Since $k=\Theta(m)$ for fixed $c$, $T(m)=\Theta(m^2)$ and amortized cost is $\Theta(m)$ per append.
+There are $\Theta(m)$ resizes for fixed $c$, and the total copied elements are $\Theta(m^2)$. Thus
+\[
+T(m)=\Theta(m^2),\qquad T(m)/m=\Theta(m).
+\]
+For $c=2$ and nine appends, capacities grow through $1,3,5,7,9$ and copying costs $1+3+5+7=16$, in addition to the nine inserted values.
 
-\subsection{Doubling growth}
-For new capacity $2N$, copied counts are $1,2,4,8,\ldots$. Across $m$ appends their sum is less than $2m$:
+\subsection{Doubling: linear total copying}
+If a full array doubles its capacity, copied sizes are
+\[
+1,2,4,\ldots,2^k,
+\]
+where $2^k<m$ if there is a final resize. Their sum satisfies
 \[
 1+2+\cdots+2^k=2^{k+1}-1<2m.
 \]
-Adding the $m$ writes gives $T(m)=\Theta(m)$ and amortized $\Theta(1)$ append.
-\begin{center}\begin{tabular}{@{}lcc@{}}\toprule
-Growth & Total for $m$ appends & Amortized append\\\midrule
-Fixed increment & $\Theta(m^2)$ & $\Theta(m)$\\
-Doubling & $\Theta(m)$ & $\Theta(1)$\\\bottomrule
-\end{tabular}\end{center}
-\keyidea{One doubling append can still cost $\Theta(n)$ when it resizes. Amortized cost describes a sequence, not a worst-case individual operation and not a probabilistic average.}
-Middle insertion still shifts entries and remains $O(n)$. With doubling and no deletions, capacity is $O(n)$ for a nonempty list; without shrinking, many deletions can leave capacity much larger than size.
+Adding $m$ ordinary element writes still gives $T(m)=\Theta(m)$ and $O(1)$ amortized append time. The same growth order holds if allocation/initialization costs are included.
 
-\section{Positional-list ADT and linked implementation}
-\sourcepages{17--23}
-Accessors \method{first()}, \method{last()}, \method{before(p)}, and \method{after(p)} return positions. Updates \method{addFirst(e)}, \method{addLast(e)}, \method{addBefore(p,e)}, and \method{addAfter(p,e)} return the inserted position. \method{set(p,e)} returns the old element; \method{remove(p)} returns the removed element and invalidates the position. A position must belong to the list and still be valid. Sentinels are not user positions.
+\begin{center}
+\small
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+Append number &1&2&3&4&5&6&7&8&9\\
+\midrule
+Capacity after append &1&2&4&4&8&8&8&8&16\\
+Existing elements copied &0&1&2&0&4&0&0&0&8\\
+\bottomrule
+\end{tabular}
+\end{center}
+Nine appends copy $15$ existing elements. For a nonempty append-only doubling array, $n\le N<2n$, so storage is $\Theta(n)$.
 
-Use doubly linked nodes with element, previous, and next fields and header/trailer sentinels. All insertions share one helper:
-\par\noindent\begin{minipage}{\linewidth}
+\textbf{Important distinction:} one append can still take $\Theta(n)$ time. Also, doubling does not make insertion at the front constant time; shifting remains linear. If deletions are supported without shrinking, capacity may stay large compared with the current size.
+
+\section{Positional lists}
+\textit{Source: pp.\ 17--23.}
+\begin{itemize}
+\item \texttt{first()}, \texttt{last()}: return endpoint positions, not just their elements.
+\item \texttt{before(p)}, \texttt{after(p)}: return adjacent positions.
+\item \texttt{addFirst(e)}, \texttt{addLast(e)}, \texttt{addBefore(p,e)}, \texttt{addAfter(p,e)}: insert and return the new position.
+\item \texttt{set(p,e)}: replace the element at $p$, returning the old one.
+\item \texttt{remove(p)}: remove and return the element and invalidate $p$.
+\end{itemize}
+There is no direct indexed access in the positional-list ADT. Boundary accessors commonly return null when no such position exists; sentinel nodes are implementation details, not user positions.
+
+\subsection{Doubly linked implementation}
+Nodes implement positions, storing an element and references to the previous and next nodes. Header and trailer sentinels simplify endpoints.
 \begin{lstlisting}
-addBetween(e, pred, succ):
-    p = new Node(e, pred, succ)
-    pred.next = p
-    succ.prev = p
-    size = size + 1
+addBetween(e,pred,succ):
+    p <- new Node(e,pred,succ)
+    pred.next <- p
+    succ.prev <- p
+    size <- size+1
     return p
 
-addAfter(p,e): return addBetween(e,p,p.next)
-addBefore(p,e): return addBetween(e,p.prev,p)
-addFirst(e): return addBetween(e,header,header.next)
-addLast(e): return addBetween(e,trailer.prev,trailer)
-\end{lstlisting}
-\end{minipage}\par
-\par\noindent\begin{minipage}{\linewidth}
-\begin{lstlisting}
+addAfter(p,e):
+    validate(p)
+    return addBetween(e,p,p.next)
+
+addLast(e):
+    return addBetween(e,trailer.prev,trailer)
+
 remove(p):
-    validate p
-    old = p.element
-    p.prev.next = p.next
-    p.next.prev = p.prev
-    size = size - 1
-    invalidate p
-    return old
+    validate(p)
+    result <- p.element
+    p.prev.next <- p.next
+    p.next.prev <- p.prev
+    size <- size-1
+    invalidate(p)
+    return result
 \end{lstlisting}
-\end{minipage}\par
-These operations all take $O(1)$ given a valid position. Searching for a position can add $O(n)$ time. Space is $O(n)$. A boundary accessor returns no user position if there is no neighbor.
+All listed operations, including neighbor access, take $O(1)$ given a valid position; storage is $O(n)$. A robust implementation rejects invalid, removed, sentinel, or foreign-list positions. Validation can use metadata rather than traversing the entire list. Finding a position by value or rank is a separate operation and can take $O(n)$.
 
-\section{Sequence ADT and implementation tradeoffs}
-\sourcepages{25,28--35}
-A sequence combines indexed and positional operations, plus \method{atIndex(i)} to obtain the position of rank $i$ and \method{indexOf(p)} to obtain the rank of $p$.
+\section{Sequence ADT}
+\textit{Source: pp.\ 25, 28--35.}
+In addition to indexed and positional operations, a sequence provides
+\[
+\texttt{atIndex(i)}\longrightarrow\text{position at rank }i,
+\qquad
+\texttt{indexOf(p)}\longrightarrow\text{current rank of }p.
+\]
 
-An array sequence stores position objects with an element and maintained rank. A circular array maps logical rank $i$ to $(f+i)\bmod N$. An update can require both moving entries and updating ranks. A doubly linked sequence supports local position updates quickly, but rank translation requires traversal.
-\begin{center}\small\begin{tabular}{@{}lcc@{}}\toprule
-Operation & Array sequence (slide design) & Linked sequence\\\midrule
-\method{size()}, \method{isEmpty()} & $O(1)$ & $O(1)$\\
-\method{get(i)}, \method{set(i,e)} & $O(1)$ & $O(n)$\\
-\method{add(i,e)}, \method{remove(i)} & $O(n)$ & $O(n)$\\
-\method{addFirst(e)} & $O(n)$ & $O(1)$\\
-\method{addLast(e)} & $O(1)$ if room & $O(1)$\\
-\method{addBefore(p,e)}, \method{addAfter(p,e)} & $O(n)$ & $O(1)$\\
-\method{set(p,e)} & $O(1)$ & $O(1)$\\
-\method{remove(p)} & $O(n)$ worst & $O(1)$\\
-\method{atIndex(i)}, \method{indexOf(p)} & $O(1)$ & $O(n)$\\\bottomrule
-\end{tabular}\end{center}
-In the array design, front insertion is linear because all stored logical ranks must be updated, even if circular storage avoids moving entries. These are costs of the lecture's design; other representations can change the tradeoffs. Resizing makes an individual array append $O(n)$.
+\subsection{Array-based sequence}
+The slides use an array of position objects. Each object stores its element and index/rank information. Indexed lookup and rank retrieval are constant time, but insertions and deletions must move references and maintain index information for affected positions.
+
+For circular storage, translate a logical rank $i$ to physical slot $(f+i)\bmod N$. If a position stores its physical slot $j$, its logical rank is $(j-f+N)\bmod N$. If it instead stores its logical rank, that rank must be updated whenever earlier entries are inserted or removed. \textbf{Do not mix physical indices with logical ranks.}
+
+The comparison below follows the lecture's implementation that updates stored ranks, including an $O(n)$ \texttt{addFirst}. Alternative circular designs may optimize some endpoint operations; they do not remove the worst-case cost of arbitrary middle shifts.
+
+\subsection{Linked sequence}
+A doubly linked sequence retains constant-time positional updates. \texttt{atIndex} and \texttt{indexOf} need a traversal, making indexed operations linear in the worst case.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{Xcc}
+\toprule
+Operation & Array sequence & Linked sequence\\
+\midrule
+\texttt{size}, \texttt{isEmpty} & $O(1)$ & $O(1)$\\
+\texttt{get(i)}, \texttt{set(i,e)} & $O(1)$ & $O(n)$\\
+\texttt{add(i,e)}, \texttt{remove(i)} & $O(n)$ & $O(n)$\\
+\texttt{addFirst(e)} & $O(n)$ & $O(1)$\\
+\texttt{addLast(e)} & $O(1)^*$ & $O(1)$\\
+\texttt{addBefore}, \texttt{addAfter}, \texttt{remove(p)} & $O(n)$ & $O(1)$\\
+\texttt{set(p,e)} & $O(1)$ & $O(1)$\\
+\texttt{atIndex(i)}, \texttt{indexOf(p)} & $O(1)$ & $O(n)$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+$^*$Assuming spare capacity; with doubling, append is $O(1)$ amortized and $O(n)$ on a resizing operation. The remaining entries are worst-case bounds under the stated implementations.
 
 \section{Move-to-front encoding}
-\sourcepages{26--27,36}
-Start with $S=[1,2,\ldots,m]$. For each requested symbol $x$, output its current zero-based rank and move it to the front. Maintain \method{loc[x]}, a position reference, not a rank that can become stale.
-\par\noindent\begin{minipage}{\linewidth}
-\begin{lstlisting}
-MTF(x):
-    p = loc[x]
-    r = S.indexOf(p)
-    S.remove(p)
-    loc[x] = S.addFirst(x)
-    return r
-\end{lstlisting}
-\end{minipage}\par
-Removing $p$ invalidates it; store the newly returned position.
-\begin{center}\begin{tabular}{@{}clcl@{}}\toprule
-Request & Before & Rank & After\\\midrule
+\textit{Source: pp.\ 26--27, 36.}
+Initially $S=[1,2,\ldots,m]$. For each requested symbol $x$, output its current zero-based index, then move it to the front. For $m=5$ and requests $Y=[3,4,3,1]$:
+\begin{center}
+\begin{tabular}{clcl}
+\toprule
+Request & Before & Output & After\\
+\midrule
 3 & $[1,2,3,4,5]$ & 2 & $[3,1,2,4,5]$\\
 4 & $[3,1,2,4,5]$ & 3 & $[4,3,1,2,5]$\\
 3 & $[4,3,1,2,5]$ & 1 & $[3,4,1,2,5]$\\
-1 & $[3,4,1,2,5]$ & 2 & $[1,3,4,2,5]$\\\bottomrule
-\end{tabular}\end{center}
-Thus $Y=[3,4,3,1]$ encodes as $[2,3,1,2]$.
+1 & $[3,4,1,2,5]$ & 2 & $[1,3,4,2,5]$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Thus the output is $Z=[2,3,1,2]$. Maintain an auxiliary array \texttt{loc[x]} holding the \emph{position} of symbol $x$:
+\begin{lstlisting}
+initialize:
+    S <- empty sequence
+    loc <- new array[m+1]
+    for x <- 1 to m:
+        loc[x] <- S.addLast(x)
 
-In an array sequence, rank lookup is $O(1)$ but remove and front insertion are $O(m)$. In a linked sequence, rank lookup is $O(m)$ but both updates are $O(1)$. Both therefore take $O(m)$ worst case per request. For $n$ requests plus initialization, total time is $O(m+nm)$ and working space is $O(m)$, excluding output.
+MTF(x):
+    p <- loc[x]
+    r <- S.indexOf(p)
+    S.remove(p)
+    loc[x] <- S.addFirst(x)
+    return r
+\end{lstlisting}
+Update \texttt{loc[x]} because removing $p$ invalidates it and reinsertion creates a new position. Other handles continue to refer to their entries.
 
-\section{Study checks}
+With an array sequence, rank lookup is $O(1)$ but moving the entry and updating ranks is $O(m)$. With a linked sequence, the local move is $O(1)$ but rank lookup is $O(m)$. Both implementations therefore take $O(m)$ per request in the worst case. For $n$ requests, the bound including initialization is $O(m+nm)$ with $O(m)$ auxiliary storage, excluding the output.
+
+\section{Quick review}
 \begin{enumerate}
-\item Why is \method{add(n,e)} legal but \method{get(n)} illegal? Insertion can use the slot after the last entry; access requires an existing entry.
-\item Why does a position survive insertion before it? It identifies an entry rather than its rank.
-\item Does amortized constant-time append imply constant-time middle insertion? No: shifting remains linear.
-\item What dominates move-to-front? Rank maintenance in the array design; rank lookup in the linked design.
+\item Why is doubling better than adding a fixed number of slots?\\
+\textbf{Answer:} copied sizes form a geometric sum of $O(m)$ rather than an arithmetic sum of $\Theta(m^2)$ over $m$ appends.
+\item Does a known linked position reveal its rank?\\
+\textbf{Answer:} no. The standard linked implementation must count positions by traversal.
+\item Can a removed position be reused?\\
+\textbf{Answer:} no. Removal invalidates that handle.
+\item Why is linked move-to-front encoding still linear per request?\\
+\textbf{Answer:} the encoding needs the old rank, even though the pointer changes themselves are constant time.
 \end{enumerate}
-
 \end{document}

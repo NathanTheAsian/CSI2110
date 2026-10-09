@@ -1,187 +1,215 @@
-\documentclass[11pt,letterpaper]{article}
-\usepackage[margin=0.7in]{geometry}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
-\definecolor{accent}{RGB}{25,65,100}
-\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,tabularx,listings,xcolor,hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black}
+\lstset{basicstyle=\ttfamily\small,columns=fullflexible,keepspaces=true,breaklines=true,frame=single}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{4pt}
-\setlength{\headheight}{14pt}
-\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
-\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
-\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
-\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
-\newcommand{\cost}[1]{\ensuremath{O(#1)}}
-\newcommand{\method}[1]{\texttt{#1}}
-
-\title{\textbf{Lecture 2: Stacks, Queues, and Deques}\\[3pt]\large CSI2110 -- Data Structures and Algorithms}
-\author{Lecture study notes}\date{}\begin{document}\maketitle
-\textbf{Source document:} \path{../lec02-stacks, queues, deques.pdf}.
-These notes synthesize the source and add worked explanations. Page references use PDF page numbers, which can differ from printed slide numbers. Pseudocode is normalized for readability and boundary cases.
-\tableofcontents\newpage
+\setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{2em}
+\title{CSI 2110 --- Lecture 2\\Stacks, Queues, and Deques}
+\author{Study notes based on Bo Sun's Fall 2026 lecture}
+\date{}
+\begin{document}
+\maketitle
+\textbf{Source:} \texttt{lec02-stacks, queues, deques.pdf}, 53 PDF pages. References use PDF page numbers. Pseudocode is expanded to make boundary cases and updates explicit; complexity explanations and review answers supplement the slides.
 
 \section{Abstract data types}
-\sourcepages{4--5}
-An \textbf{abstract data type (ADT)} specifies the stored objects, supported operations, and their effects. It does not specify the storage representation. A Java interface can express an ADT; a class implementing it supplies a concrete data structure.
+\textit{Source: pp.\ 4--5.}
 
-The lecture's stack, queue, and deque ADTs return \method{null} for empty removal or inspection. This is a course convention; other APIs may throw exceptions. If null elements are allowed, a null return alone cannot distinguish an empty container from a stored null.
+An \textbf{abstract data type (ADT)} specifies what values can be stored and what operations do. A \textbf{concrete data structure} specifies how those operations are implemented. In Java, an interface can express the ADT and a class can implement it.
+
+The lecture's stack, queue, and deque interfaces return \texttt{null} for an empty removal or empty endpoint inspection. Fixed-capacity insertion into a full array reports an error. These are the course conventions; they are not a claim about every Java library method.
 
 \section{Stacks: last in, first out}
-\sourcepages{7--19}
-A stack inserts and removes at the same end, called the top. \method{push(e)} inserts; \method{pop()} removes and returns the top; \method{top()} inspects it. \method{size()} and \method{isEmpty()} give container information. Undo is a natural example: typing C, A, T and undoing twice leaves C.
+\textit{Source: pp.\ 7--19.}
 
-\subsection{Array implementation}
-Store entries in $S[0..t]$ of a capacity-$N$ array. Initially $t=-1$, and the size is $t+1$.
-\par\noindent\begin{minipage}{\linewidth}
+A stack adds and removes at the \textbf{top}. The most recently pushed element is the next one popped.
+\begin{center}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+Operation & Meaning\\
+\midrule
+\texttt{push(e)} & Put $e$ on top.\\
+\texttt{pop()} & Remove and return the top; return null if empty.\\
+\texttt{top()} & Inspect the top without removing it; null if empty.\\
+\texttt{size()}, \texttt{isEmpty()} & Return the size or test whether it is zero.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+Example: typing C, A, T and undoing twice removes T and then A, leaving C.
+
+\subsection{Array stack}
+Use an array $S$ of capacity $N>0$ and a top index $t$, initially $-1$. The occupied segment is $S[0\ldots t]$, and size is $t+1$.
 \begin{lstlisting}
 push(e):
-    if t + 1 == N: report full-capacity error
-    t = t + 1
-    S[t] = e
-pop():
-    if t == -1: return null
-    result = S[t]
-    S[t] = null
-    t = t - 1
-    return result
-\end{lstlisting}
-\end{minipage}\par
-Clearing the vacated reference permits garbage collection. Fixed-capacity operations all take $O(1)$; storage is $O(N)$. A growing array can occasionally incur $O(n)$ resizing, although doubling gives amortized $O(1)$ push.
+    if t+1 = N: error "full stack"
+    t <- t+1
+    S[t] <- e
 
-\subsection{Singly linked implementation}
-Make the head the top; maintain a size field.
-\par\noindent\begin{minipage}{\linewidth}
+pop():
+    if t = -1: return null
+    result <- S[t]
+    S[t] <- null
+    t <- t-1
+    return result
+
+top():
+    if t = -1: return null
+    return S[t]
+\end{lstlisting}
+All operations are $O(1)$, and storage is $O(N)$. Clearing a removed reference prevents the array from retaining the object unnecessarily. A resizable array changes the worst-case cost of a push that triggers copying; Lecture 3 explains amortized bounds.
+
+\subsection{Singly linked stack}
+Make the head of a singly linked list the stack top; maintain a size counter.
 \begin{lstlisting}
 push(e):
-    head = new Node(e, head)
-    size = size + 1
+    head <- new Node(e, head)
+    size <- size+1
+
 pop():
-    if head == null: return null
-    result = head.element
-    head = head.next
-    size = size - 1
+    if head = null: return null
+    result <- head.element
+    head <- head.next
+    size <- size-1
     return result
 \end{lstlisting}
-\end{minipage}\par
-All stack operations take $O(1)$; storage is $O(n)$. Using the tail as the top of a singly linked list would make pop slow.
+All stack operations are $O(1)$ and storage is $O(n)$. Using the tail of a singly linked list as the top would make removal expensive.
 
 \section{Stack applications}
-\sourcepages{20--25}
-\subsection{Reversing an array}
-Push every entry in forward order, then pop entries back into the array in forward index order. LIFO reverses the order: $[4,1,2,3]\mapsto[3,2,1,4]$. Time is $\Theta(n)$; auxiliary stack space is $\Theta(n)$.
+\textit{Source: pp.\ 20--25.}
 
-\subsection{Matching parentheses}
-\par\noindent\begin{minipage}{\linewidth}
+\subsection{Reverse an array}
+Push the elements left to right, then pop them back into the array left to right. The input $[4,1,2,3]$ becomes $[3,2,1,4]$. Time is $\Theta(n)$ and auxiliary stack space is $\Theta(n)$. In Java, a \texttt{Stack<Integer>} example should use an \texttt{Integer[]} argument when the method signature requires that array type; \texttt{int[]} is a different type.
+
+\subsection{Match delimiters}
+Push each opening delimiter. For a closing delimiter, reject if the stack is empty or its popped opening delimiter has a different type. Ignore non-delimiter characters. Accept at the end only if the stack is empty.
 \begin{lstlisting}
-for each character c:
-    if c is an opening delimiter:
-        push(c)
-    else if c is a closing delimiter:
-        if stack is empty: return false
-        if pop() is not c's matching opener: return false
-return stack is empty
+isMatched(text):
+    S <- empty stack
+    for each character c in text:
+        if c is one of '(', '[', '{':
+            S.push(c)
+        else if c is one of ')', ']', '}':
+            if S.isEmpty(): return false
+            if S.pop() does not match c: return false
+    return S.isEmpty()
 \end{lstlisting}
-\end{minipage}\par
-The stack contains unmatched opening delimiters in their encounter order. The next closer must match the most recent unmatched opener. Non-delimiter characters are ignored. Examples: \method{([]\{\})} is valid; \method{([)]}, \method{(()}, and \method{)(} are invalid. Time is $\Theta(n)$, with $O(n)$ auxiliary space in the worst case.
+The stack contains the unmatched opening delimiters in nesting order. A closing delimiter must match the \emph{most recent} unmatched opening. Thus \texttt{([]\{\})} is valid, while \texttt{([)]}, \texttt{(()}, and \texttt{)(} are invalid. Time is $O(n)$ and worst-case space is $O(n)$.
 
-\subsection{Arithmetic expression evaluation}
-Maintain a value stack $V$ and an operator stack $O$. For the lecture's left-associative operators, before pushing a new operator, apply any waiting operator of higher or equal precedence. At the end, apply the remaining operators.
+\subsection{Evaluate arithmetic expressions}
+Maintain a value stack $V$ and an operator stack $O$. For the left-associative operators in the lecture, before pushing a new operator, apply pending operators of higher or equal precedence. At the end, apply all remaining operators.
 
-When applying an operator, pop the \emph{right} operand first and the left operand second. Apply the operator to the left operand and then the right operand. Reversing these changes subtraction or division.
-
-For $14-3\times2+7$, before pushing $+$, apply multiplication to get $6$, then subtraction to get $8$; the final result is $15$. With each token pushed/popped a constant number of times, time is $O(n)$ and space $O(n)$. Parentheses need additional rules; the slides demonstrate precedence without them.
+To apply a binary operator, pop the \textbf{right operand first}, then the left, and push $\text{left}\ \text{operator}\ \text{right}$. This matters for subtraction and division.
+\[
+14-3\times2+7\;\longrightarrow\;14-6+7
+\;\longrightarrow\;8+7\;\longrightarrow\;15.
+\]
+When the $+$ arrives, apply $\times$ and then $-$ before storing $+$. A parenthesis-aware extension pushes opening parentheses and applies operators until that opening marker when a closing parenthesis arrives. Equal-precedence popping assumes left associativity; it must be adjusted for any right-associative operators.
 
 \section{Queues: first in, first out}
-\sourcepages{27--39}
-A queue inserts at the rear and removes from the front. \method{enqueue(e)} inserts, \method{dequeue()} removes and returns the front, and \method{first()} inspects it. A shared printer serving jobs by arrival time uses FIFO.
+\textit{Source: pp.\ 27--39.}
 
-\subsection{Circular array implementation}
-Use capacity $N>0$, front index $f$, and current size $s$. The logical entry at rank $i$ is at $(f+i)\bmod N$.
+A queue inserts at the \textbf{rear} and removes at the \textbf{front}. \texttt{enqueue(e)} inserts; \texttt{dequeue()} removes and returns the oldest element; \texttt{first()} inspects it. The ADT also includes \texttt{size()} and \texttt{isEmpty()}. A shared printer is a typical arrival-order application.
+
+\subsection{Circular array queue}
+Maintain capacity $N>0$, front index $f$, and size $s$, initially $f=s=0$. Wrap indices using modulo:
 \[
-\text{next insertion index}=(f+s)\bmod N,\qquad
-\text{last stored index}=(f+s-1)\bmod N\quad(s>0).
+\text{next insertion index }r=(f+s)\bmod N,
+\qquad\text{last occupied index }(f+s-1)\bmod N.
 \]
-\par\noindent\begin{minipage}{\linewidth}
+The last-index formula is used only when $s>0$. Logical element $i$ is stored at $(f+i)\bmod N$.
 \begin{lstlisting}
 enqueue(e):
-    if s == N: report full-capacity error
-    Q[(f + s) mod N] = e
-    s = s + 1
+    if s = N: error "full queue"
+    Q[(f+s) mod N] <- e
+    s <- s+1
+
 dequeue():
-    if s == 0: return null
-    result = Q[f]
-    Q[f] = null
-    f = (f + 1) mod N
-    s = s - 1
+    if s = 0: return null
+    result <- Q[f]
+    Q[f] <- null
+    f <- (f+1) mod N
+    s <- s-1
     return result
 \end{lstlisting}
-\end{minipage}\par
-\keyidea{Front equal to next-insertion index can mean either empty or full. The size field distinguishes $s=0$ from $s=N$.}
+All operations are $O(1)$; storage is $O(N)$. No element shifting is needed. \textbf{$f=r$ alone does not distinguish empty from full}: it occurs when $s=0$ and when $s=N$. The size counter resolves the ambiguity.
 
-\textbf{Slide example:} $N=11,f=7,s=3$ holds A, B, C at indices $7,8,9$. Enqueue D at $10$, E at $0$, then dequeue A. Now $f=8,s=4$, and B, C, D, E occupy $8,9,10,0$.
-
-All fixed-capacity operations take $O(1)$ and allocated storage is $O(N)$. Circular indexing avoids shifting on dequeue.
+\textbf{Wraparound trace from the slides.} With $N=11$, $f=7$, and logical contents $[A,B,C]$, the next insertion slot is $10$. Enqueue D at $10$, then E at $0$. Dequeue returns A, sets $f=8$, and leaves $s=4$ with logical contents $[B,C,D,E]$.
 
 \subsection{Singly linked queue}
-The head is the front and the tail is the rear. Enqueue links a new node after the tail; dequeue removes the head. Maintain both references and a size field. For the first insertion set both ends; when removing the final element clear the tail. All operations take $O(1)$; storage is $O(n)$. Reversing front and rear would require tail deletion and incur $O(n)$ dequeue.
+Use the head as the front and tail as the rear. Enqueue by appending at the tail; dequeue by removing the head. Maintain the size. When adding to an empty queue, set both pointers. When the last element is removed, set the tail to null as well.
 
-\section{Recent calls in a time window}
-\sourcepages{40--41}
-Assume calls arrive with increasing timestamps. Keep timestamps in a queue, oldest first. The interval $[t-3000,t]$ includes both endpoints.
-\par\noindent\begin{minipage}{\linewidth}
+This gives $O(1)$ operations and $O(n)$ storage. Reversing the endpoint roles would require removing the tail of a singly linked list, taking $O(n)$ time. An array queue is useful when capacity is bounded; a linked or extendable-array implementation supports growth.
+
+\section{Queue application: recent calls}
+\textit{Source: pp.\ 40--41.}
+Calls arrive at strictly increasing timestamps $t$. Return how many lie in the inclusive interval $[t-3000,t]$:
 \begin{lstlisting}
 ping(t):
     Q.enqueue(t)
-    while not Q.isEmpty() and Q.first() < t - 3000:
+    cutoff <- t-3000
+    while not Q.isEmpty() and Q.first() < cutoff:
         Q.dequeue()
     return Q.size()
 \end{lstlisting}
-\end{minipage}\par
-For times $10,500,3010,3501$, the results are $1,2,3,2$. At $3010$, timestamp $10$ is retained because it equals the cutoff. At $3501$, both $10$ and $500$ expire.
+The comparison is strict: a timestamp equal to the cutoff remains. Calls at $10,500,3010,3501$ produce counts $1,2,3,2$. At $3501$, the cutoff is $501$, so $10$ and $500$ are removed.
 
-\textbf{Additional analysis:} one call may remove many entries and take $O(q)$ time if $q$ timestamps are stored. Across $m$ calls, each timestamp is enqueued once and dequeued at most once, so total queue work is $O(m)$ and amortized time is $O(1)$ per call. Space depends on calls inside the current window.
+\textbf{Additional analysis:} one call can remove many timestamps, but each timestamp is enqueued once and dequeued at most once. Across $m$ calls the queue work is $O(m)$, or $O(1)$ amortized per call. Storage is proportional to the number of calls still in the time window.
 
-\section{Deques: updates at both ends}
-\sourcepages{43--50}
-A deque (double-ended queue) supports these operations:
-\begin{itemize}
-\item Insert at either end: \method{addFirst(e)} and \method{addLast(e)}.
-\item Remove at either end: \method{removeFirst()} and \method{removeLast()}.
-\item Inspect either end: \method{first()} and \method{last()}.
-\item Report container information: \method{size()} and \method{isEmpty()}.
-\end{itemize}
+\section{Deques: both endpoints}
+\textit{Source: pp.\ 43--51.}
 
-To implement a stack using a deque: push is \method{addLast}, pop is \method{removeLast}, and top is \method{last}. To implement a queue: enqueue is \method{addLast}, dequeue is \method{removeFirst}, and front inspection is \method{first}.
+A \textbf{double-ended queue} supports \texttt{addFirst}, \texttt{addLast}, \texttt{removeFirst}, and \texttt{removeLast}. Inspectors are \texttt{first}, \texttt{last}, \texttt{size}, and \texttt{isEmpty}.
 
-\subsection{Circular-array formulas}
-Using front $f$ and size $s$, test full/empty before modifying anything:
-\begin{center}\begin{tabular}{@{}lp{4.8in}@{}}\toprule
-Operation & Update\\\midrule
-\method{addFirst(e)} & $f\leftarrow(f-1+N)\bmod N$; write $D[f]\leftarrow e$; increment $s$.\\
-\method{addLast(e)} & Write $D[(f+s)\bmod N]\leftarrow e$; increment $s$.\\
-\method{removeFirst()} & Save and clear $D[f]$; advance $f\leftarrow(f+1)\bmod N$; decrement $s$.\\
-\method{removeLast()} & Save and clear $D[(f+s-1)\bmod N]$; decrement $s$; leave $f$ unchanged.\\\bottomrule
-\end{tabular}\end{center}
-Adding $N$ before modulo avoids a negative index in Java's remainder arithmetic. All fixed-capacity operations are $O(1)$; space is $O(N)$.
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Use a deque as & Insert & Remove\\
+\midrule
+Stack, top at back & \texttt{addLast(e)} & \texttt{removeLast()}\\
+Queue & \texttt{addLast(e)} & \texttt{removeFirst()}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Circular array implementation}
+Use the same $f,s,N$ invariant as a queue. \texttt{addLast} and \texttt{removeFirst} are the queue operations. The two remaining updates are:
+\begin{lstlisting}
+addFirst(e):
+    if s = N: error "full deque"
+    f <- (f-1+N) mod N
+    D[f] <- e
+    s <- s+1
+
+removeLast():
+    if s = 0: return null
+    last <- (f+s-1) mod N
+    result <- D[last]
+    D[last] <- null
+    s <- s-1
+    return result
+\end{lstlisting}
+Adding $N$ before taking the remainder in \texttt{addFirst} avoids a negative index in languages such as Java. All operations are $O(1)$ with a fixed-capacity array; space is $O(N)$.
 
 \subsection{Doubly linked implementation}
-Use header and trailer sentinels. Insert/remove immediately after the header or immediately before the trailer. Direct previous and next links make all end operations $O(1)$. Space is $O(n)$. A singly linked list would not provide constant-time removal at both ends.
+Use header and trailer sentinel nodes. The first element is \texttt{header.next}; the last is \texttt{trailer.prev}. Inserting or removing next to a sentinel requires only local link changes. All operations are $O(1)$ and space is $O(n)$. A singly linked list cannot supply all four endpoint updates in constant time.
 
-\section{Palindrome checking and operation tracing}
-\sourcepages{51--52}
-To check a palindrome, put characters into a deque and repeatedly compare \method{removeFirst()} with \method{removeLast()} while at least two remain. Stop on a mismatch; zero or one remaining character is valid. This takes $\Theta(n)$ time and $\Theta(n)$ auxiliary space. RADAR is a palindrome. Normalizing spaces or case is an optional preprocessing choice, not specified by the lecture.
+\subsection{Palindrome application}
+Put the characters into a deque. While at least two remain, remove and compare the first and last. Reject a mismatch; otherwise accept when zero or one remains. For example, RADAR matches R/R, then A/A, leaving D. Time is $O(n)$ and deque space is $O(n)$. Case folding and punctuation removal, if desired, are separate preprocessing choices.
 
-\subsection{Solution to the lecture's stack/queue exercise}
-Stack entries below are listed \emph{bottom to top}; queue entries are \emph{front to rear}.
-\begin{center}\begin{tabular}{@{}lll@{}}\toprule
-Checkpoint & Stack & Queue\\\midrule
-After pushing/enqueuing $0$ through $4$ & $[0,1,2,3,4]$ & $[0,1,2,3,4]$\\
-After four pops enqueued & $[0]$ & $[0,1,2,3,4,4,3,2,1]$\\
-After two dequeues pushed & $[0,0,1]$ & $[2,3,4,4,3,2,1]$\\\bottomrule
-\end{tabular}\end{center}
-
-\paragraph{Study checklist}
-Be able to explain LIFO versus FIFO, trace circular wraparound, distinguish full from empty, choose suitable linked-list endpoints, and justify time and space for the application algorithms.
-
+\section{Worked exercise and checks}
+\textit{Source exercise: p.\ 52.}
+Push and enqueue $0,1,2,3,4$ into an empty stack and queue. Then pop four stack elements and enqueue them. Finally, dequeue twice and push those values onto the stack.
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Checkpoint & Stack (bottom to top) & Queue (front to rear)\\
+\midrule
+After initial loop & $[0,1,2,3,4]$ & $[0,1,2,3,4]$\\
+After four transfers & $[0]$ & $[0,1,2,3,4,4,3,2,1]$\\
+After two final pushes & $[0,0,1]$ & $[2,3,4,4,3,2,1]$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Check that you can explain why a stack reverses order, why a queue preserves it, why circular arrays need both an index and a size, and why a linked deque needs backward links for efficient tail deletion.
 \end{document}

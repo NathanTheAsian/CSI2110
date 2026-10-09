@@ -1,211 +1,219 @@
-\documentclass[11pt,letterpaper]{article}
-\usepackage[margin=0.7in]{geometry}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
-\definecolor{accent}{RGB}{25,65,100}
-\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,tabularx,listings,xcolor,hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black}
+\lstset{basicstyle=\ttfamily\small,columns=fullflexible,keepspaces=true,breaklines=true,frame=single}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{4pt}
-\setlength{\headheight}{14pt}
-\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
-\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
-\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
-\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
-\newcommand{\cost}[1]{\ensuremath{O(#1)}}
-\newcommand{\method}[1]{\texttt{#1}}
-
-\title{\textbf{Lecture 1: Analysis of Algorithms}\\[3pt]\large CSI2110 -- Data Structures and Algorithms}
-\author{Lecture study notes}\date{}\begin{document}\maketitle
-\textbf{Source document:} \path{../lec01-analysis of algorithms.pdf}.
-These notes synthesize the source and add worked explanations. Page references use PDF page numbers, which can differ from printed slide numbers. Pseudocode is normalized for readability and boundary cases.
-\tableofcontents\newpage
+\setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{2em}
+\title{CSI 2110 --- Lecture 1\\Analysis of Algorithms}
+\author{Study notes based on Bo Sun's Fall 2026 lecture}
+\date{}
+\begin{document}
+\maketitle
+\textbf{Source:} \texttt{lec01-analysis of algorithms.pdf}, 95 PDF pages. References use PDF page numbers. Repeated animation slides are consolidated. Unless stated otherwise, $\log n=\log_2 n$ and functions are eventually nonnegative.
 
 \section{Algorithms and efficiency}
-\sourcepages{4--14}
-An algorithm is a finite, well-defined procedure for solving a problem. Evaluate \textbf{correctness}, \textbf{running time}, and \textbf{memory usage}. The input size $n$ measures the amount of data; for an array it is usually the number of entries.
+\textit{Source: pp.\ 4--18.}
 
-Different inputs of the same size can have different costs. Linear search may find a target immediately, at the last index, or not at all. Its best-case time is $\Theta(1)$ and worst-case time is $\Theta(n)$.
+An \textbf{algorithm} is a well-defined, finite sequence of steps solving a problem. Evaluate its correctness, running time, and memory use. Input size $n$ measures the amount of input, for example the number of array elements.
 
-Experimental analysis implements and times a program on varied inputs. It reveals practical performance, but depends on hardware, language, compiler, and the chosen inputs. Theoretical analysis counts operations independently of a particular machine.
+For a fixed size, different inputs can take different times. Linear search has best-case $\Theta(1)$ time when the first element matches, and worst-case $\Theta(n)$ time when the target is absent or last. An average-case claim requires a model of how inputs are distributed.
 
-\section{Pseudocode and the RAM model}
-\sourcepages{15--19}
-Pseudocode expresses an algorithm without unnecessary implementation details. Indentation defines blocks; assignment is written $\leftarrow$, while $=$ means equality.
+\textbf{Experimental analysis} implements the algorithm, measures it on different inputs, and plots time against size. It reflects a particular implementation, machine, compiler, and test set. \textbf{Analytical operation counting} uses pseudocode and a computational model to explain growth independently of those details.
 
-The random access machine (RAM) model assumes constant-time memory access and constant-time primitive operations such as assignment, arithmetic on machine-sized values, comparisons, and return. A loop or a method call is not automatically one primitive operation: count the work it performs.
+\subsection{The RAM model}
+The random access machine model assumes constant-time memory access and primitive operations, such as assignment, comparison, ordinary word-sized arithmetic, and returning a value. Count how often these occur as a function of $n$. This is a modeling assumption: arithmetic on arbitrarily large integers need not be constant time.
 
-\subsection{Worked example: finding the maximum}
-Assume $n\geq1$.
-\par\noindent\begin{minipage}{\linewidth}
+Pseudocode omits language details. In these notes, \texttt{<-} denotes assignment and indentation specifies control flow.
+
+\section{Worked count: finding an array maximum}
+\textit{Source: pp.\ 15--31, 56--57.}
 \begin{lstlisting}
-arrayMax(data):
-    currentMax = data[0]
-    for i = 1 to data.length - 1:
+arrayMax(data):                 // require length(data) >= 1
+    n <- length(data)
+    currentMax <- data[0]
+    for i <- 1 to n-1:
         if data[i] > currentMax:
-            currentMax = data[i]
+            currentMax <- data[i]
     return currentMax
 \end{lstlisting}
-\end{minipage}\par
-\sourcepages{19--31}
-There are always $n-1$ element comparisons. The current maximum is assigned once initially and then at most $n-1$ more times. The lecture's particular counting convention gives $4n+3$ primitive operations in the best case and $6n+1$ in the worst case. Exact constants depend on the counting convention; both cases take $\Theta(n)$ time.
+\textbf{Invariant:} after processing index $i$, \texttt{currentMax} is the maximum of indices $0,\ldots,i$. Initialization establishes it for $i=0$; each comparison preserves it; termination gives the maximum of the entire array.
 
-\textbf{Invariant:} before iteration $i$, \method{currentMax} is the maximum of entries $0,\ldots,i-1$. Comparing entry $i$ maintains the invariant. At termination all entries have been considered.
+There are exactly $n-1$ element comparisons. Assignments to \texttt{currentMax} range from $1$ to $n$, including initialization. With the lecture's counting convention:
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Component & Best case & Worst case\\
+\midrule
+Read length and initialize maximum & 4 & 4\\
+Loop overhead & $2n$ & $2n$\\
+Array access and comparison & $2(n-1)$ & $2(n-1)$\\
+Conditional maximum update & 0 & $2(n-1)$\\
+Return & 1 & 1\\
+\midrule
+Total & $4n+3$ & $6n+1$\\
+\bottomrule
+\end{tabular}
+\end{center}
+The first element being maximal gives the best case; strictly increasing elements give the worst case. Both are $\Theta(n)$: even the best case must inspect the remaining elements. Exact primitive counts depend on the chosen convention, whereas the linear growth rate does not.
 
 \section{Asymptotic notation}
-\sourcepages{33--54,62--68}
-Asymptotic analysis describes growth for sufficiently large $n$. Assume the compared functions are eventually nonnegative and $g(n)$ is eventually positive.
+\textit{Source: pp.\ 33--54, 62--68.}
+
+\subsection{Definitions}
+For all sufficiently large integers $n$:
 \begin{align*}
-f\in O(g)&\iff \exists c>0, n_0:\quad f(n)\leq c g(n)\quad\forall n\geq n_0,\\
-f\in\Omega(g)&\iff \exists c>0, n_0:\quad f(n)\geq c g(n)\quad\forall n\geq n_0,\\
-f\in\Theta(g)&\iff \exists c_0,c_1>0, n_0:\quad
-c_0g(n)\leq f(n)\leq c_1g(n)\quad\forall n\geq n_0.
+f\in O(g)&\iff \exists c>0,\ n_0:\quad 0\le f(n)\le c g(n)\quad(n\ge n_0),\\
+f\in\Omega(g)&\iff \exists c>0,\ n_0:\quad 0\le c g(n)\le f(n)\quad(n\ge n_0),\\
+f\in\Theta(g)&\iff \exists c_0,c_1>0,\ n_0:\quad
+0\le c_0g(n)\le f(n)\le c_1g(n)\quad(n\ge n_0).
 \end{align*}
-\begin{itemize}
-\item $O$ is an upper bound, $\Omega$ a lower bound, and $\Theta$ a tight bound.
-\item $c$ absorbs constant factors; $n_0$ excludes a finite initial range.
-\item $c$ and $n_0$ must be constants independent of $n$. They need not be the smallest possible values.
-\item $\Theta(g)=O(g)\cap\Omega(g)$ and $f\in O(g)$ iff $g\in\Omega(f)$.
-\end{itemize}
-\keyidea{$O$ does not mean ``worst case'' and $\Omega$ does not mean ``best case.'' First choose the running-time function (best, worst, or average case), then bound that function.}
+$O$ gives an upper bound, $\Omega$ a lower bound, and $\Theta$ a tight bound. Each denotes a \emph{set of functions}. In particular,
+\[
+\Theta(g)=O(g)\cap\Omega(g),\qquad
+f\in O(g)\iff g\in\Omega(f).
+\]
+
+\textbf{Do not confuse a bound with an input case.} $O$ does not mean ``worst case'' and $\Omega$ does not mean ``best case.'' Either notation can describe a best-case, worst-case, or average-case running-time function.
+
+The constant $c$ absorbs multiplicative differences. The threshold $n_0$ allows the bound to ignore finitely many small inputs. Neither must be the smallest possible choice. Constants may not depend on $n$.
 
 \subsection{Proofs by definition}
-For $n\geq1$,
+\begin{enumerate}
+\item $25n+2110\in O(n)$: for $n\ge1$,
 \[
-25n+2110\leq25n+2110n=2135n.
+25n+2110\le25n+2110n=2135n.
 \]
-Thus $25n+2110\in O(n)$ with $c=2135,n_0=1$.
-
-For $n\geq1$,
+Choose $c=2135$ and $n_0=1$.
+\item $3n^3+20n^2+5\in O(n^3)$: for $n\ge1$, each smaller power is at most $n^3$, giving an upper bound $28n^3$.
+\item $20n^2+4n\in\Theta(n^2)$: for $n\ge1$,
 \[
-3n^3+20n^2+5\leq28n^3.
+20n^2\le20n^2+4n\le24n^2.
 \]
-Hence the polynomial is $O(n^3)$. It is also $\Omega(n^3)$ because it is at least $3n^3$, so it is $\Theta(n^3)$.
-
-For $n\geq1$,
+Choose $c_0=20,c_1=24,n_0=1$.
+\item $n\log n+204n\in\Theta(n\log n)$: for $n\ge2$,
 \[
-20n^2\leq20n^2+4n\leq24n^2,
+n\log n\le n\log n+204n\le205n\log n.
 \]
-proving $\Theta(n^2)$ with $c_0=20,c_1=24,n_0=1$.
+The threshold is $2$, since $\log_2 1=0$; the upper bound printed with $n_0=1$ in the slides needs this correction.
+\end{enumerate}
 
-For base-2 logarithms and $n\geq2$, $\log_2 n\geq1$, so
-\[
-n\log_2 n\leq n\log_2 n+204n\leq205n\log_2 n.
-\]
-This proves $\Theta(n\log n)$. The threshold $n_0=2$ is needed for this upper bound; $n=1$ does not satisfy it.
+To prove that $n^2\notin O(n)$, suppose fixed $c,n_0$ existed with $n^2\le cn$ for all $n\ge n_0$. Choosing an integer $n>\max(c,n_0)$ contradicts $n\le c$.
 
-\subsection{Rules and growth order}
-For nonnegative functions:
+\subsection{Rules and growth hierarchy}
 \begin{itemize}
-\item Reflexivity: $f\in O(f)$; transitivity: $f\in O(g),g\in O(h)\Rightarrow f\in O(h)$.
-\item If $f,g\in O(h)$, then $f+g\in O(h)$.
-\item If $f_1\in O(f_2)$ and $g_1\in O(g_2)$, then $f_1g_1\in O(f_2g_2)$.
-\item $\max\{f,g\}\leq f+g\leq2\max\{f,g\}$, so $f+g\in\Theta(\max\{f,g\})$.
+\item Drop constant factors and lower-order terms when finding a tight growth class: $12n^3+5000n^2+2n^4\in\Theta(n^4)$.
+\item Reflexivity: $f\in O(f)$. Transitivity: $f\in O(g)$ and $g\in O(h)$ imply $f\in O(h)$.
+\item Additivity: if $f,g\in O(h)$, then $f+g\in O(h)$.
+\item Multiplication: if $f_1\in O(f_2)$ and $g_1\in O(g_2)$, then $f_1g_1\in O(f_2g_2)$ for nonnegative functions.
+\item $\max(f,g)\le f+g\le2\max(f,g)$, so $f+g\in\Theta(\max(f,g))$ for nonnegative functions.
 \end{itemize}
-Drop constant factors and lower-order terms when finding a tight class. An eventually nonnegative degree-$d$ polynomial with positive leading coefficient is $\Theta(n^d)$. Using absolute coefficient values gives a valid upper-bound proof even when some coefficients are negative.
-
 Common growth rates, in increasing order, are
 \[
-1,\quad\log n,\quad n,\quad n\log n,\quad n^2,\quad n^3,\quad
-2^n,\quad n2^n,\quad e^n,\quad n!.
+1,\quad\log n,\quad n,\quad n\log n,\quad n^2,\quad n^3,
+\quad2^n,\quad n2^n,\quad e^n,\quad n!.
 \]
-A fixed logarithm base greater than one changes only a constant factor. A fixed exponential base \emph{can} change the growth class: $3^n\notin O(2^n)$.
+Every fixed-degree polynomial eventually grows more slowly than an exponential with fixed base greater than $1$. Logarithms with fixed bases greater than $1$ differ by only a constant factor. Although $2n+1\in O(n^2)$ is true, $\Theta(n)$ is the more informative bound.
 
-\subsection{Lecture classification exercise}
-\sourcepages{66}
-\begin{center}\begin{tabular}{@{}lccc@{}}\toprule
-Function & $O(n^3)$ & $\Omega(n^3)$ & $\Theta(n^3)$\\\midrule
-$77n^2$ & Yes & No & No\\
-$6n^3+n^2\log_2 n$ & Yes & Yes & Yes\\
-$11n^4$ & No & Yes & No\\
-$n^2$ if even; $n^4$ if odd & No & No & No\\\bottomrule
-\end{tabular}\end{center}
-The last function violates the upper bound on arbitrarily large odd inputs and the lower bound on arbitrarily large even inputs. Asymptotic definitions require the inequality for \emph{all} sufficiently large inputs.
+\section{Analyzing loops and sums}
+\textit{Source: pp.\ 58--60, 92--94.}
+\begin{center}
+\begin{tabularx}{\textwidth}{Xl}
+\toprule
+Pattern with constant work per iteration & Tight time\\
+\midrule
+Fixed number of iterations, independent of $n$ & $\Theta(1)$\\
+Increment $i$ by $1$ or $2$ until reaching $n$ & $\Theta(n)$\\
+Multiply positive $i$ by $2$ until reaching $n$ & $\Theta(\log n)$\\
+Two independent loops, each of length $n$, nested & $\Theta(n^2)$\\
+Inner loop runs $i+1$ times for $i=0,\ldots,n-1$ & $\Theta(n^2)$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+Sequential blocks add their costs. For nested loops, sum the inner cost over the outer iterations; simply multiplying the largest bounds can be loose.
+\[
+\sum_{i=1}^n i=\frac{n(n+1)}2,\qquad
+\sum_{i=0}^k r^i=\frac{r^{k+1}-1}{r-1}\quad(r\ne1).
+\]
+For fixed $r>1$, the geometric sum is $\Theta(r^k)$. For $r=1$ it is $k+1$; for fixed $0<r<1$ it is $\Theta(1)$. Thus the lecture's geometric-growth simplification requires $r>1$.
 
-\section{Analyzing loops}
-\sourcepages{56--60}
-Count iterations, multiply by the work per iteration, and sum costs when bounds depend on an outer variable.
-\begin{center}\begin{tabular}{@{}ll@{}}\toprule
-Pattern, with constant work in the body & Tight time\\\midrule
-$i\leftarrow i+1$, up to $n$ & $\Theta(n)$\\
-$i\leftarrow i+2$, up to $n$ & $\Theta(n)$\\
-$i\leftarrow2i$, starting at $1$, up to $n$ & $\Theta(\log n)$\\
-A fixed 1001 iterations & $\Theta(1)$\\
-Two nested loops, each $n$ iterations & $\Theta(n^2)$\\
-Outer $i=0,\ldots,n-1$; inner $j=0,\ldots,i$ & $\Theta(n^2)$\\\bottomrule
-\end{tabular}\end{center}
-The triangular case has $\sum_{i=0}^{n-1}(i+1)=n(n+1)/2$ iterations. Nested loops do not always multiply to $n^2$; use their actual bounds. The fixed-loop array example requires a large enough array for its indices to be legal.
+\section{Prefix averages: eliminate repeated work}
+\textit{Source: pp.\ 70--90.}
 
-\section{Prefix averages: avoiding repeated work}
-\sourcepages{70--76}
-Given $X[0],\ldots,X[n-1]$, define
+Given $X[0\ldots n-1]$, compute
 \[
 A[i]=\frac{\sum_{j=0}^{i}X[j]}{i+1}.
 \]
-A direct algorithm recomputes each prefix sum:
-\par\noindent\begin{minipage}{\linewidth}
-\begin{lstlisting}
-for i = 0 to n - 1:
-    s = 0
-    for j = 0 to i:
-        s = s + X[j]
-    A[i] = s / (i + 1)
-\end{lstlisting}
-\end{minipage}\par
-It performs $1+2+\cdots+n=\Theta(n^2)$ additions. Maintain a running sum instead:
-\par\noindent\begin{minipage}{\linewidth}
-\begin{lstlisting}
-s = 0
-for i = 0 to n - 1:
-    s = s + X[i]
-    A[i] = s / (i + 1)
-\end{lstlisting}
-\end{minipage}\par
-This takes $\Theta(n)$ time. Both allocate $\Theta(n)$ output space and use $O(1)$ additional working space. Use real-number division for averages.
+For $X=[5,13,4,8]$, $A=[5,9,22/3,7.5]$.
 
-For $X=[5,13,4,8]$, the running sums are $5,18,22,30$, giving averages $5,9,22/3,7.5$.
+\subsection{Recompute each prefix: quadratic}
+\begin{lstlisting}
+for i <- 0 to n-1:
+    s <- 0
+    for j <- 0 to i:
+        s <- s + X[j]
+    A[i] <- s / (i+1)
+\end{lstlisting}
+The additions total $1+2+\cdots+n=n(n+1)/2$, so time is $\Theta(n^2)$.
 
-\section{Prefix averages at geometric steps}
-\sourcepages{77--90}
-Only return averages for prefix lengths $1,2,4,\ldots,2^k$, where $k=\lfloor\log_2 n\rfloor$ and $n\geq1$:
+\subsection{Maintain a running sum: linear}
+\begin{lstlisting}
+s <- 0
+for i <- 0 to n-1:
+    s <- s + X[i]
+    A[i] <- s / (i+1)
+\end{lstlisting}
+After adding $X[i]$, the invariant is $s=\sum_{j=0}^iX[j]$. Each iteration is constant time, so the total is $\Theta(n)$. Both versions use $\Theta(n)$ output space and $O(1)$ additional working space. Use real-valued division when fractional averages are needed.
+
+\subsection{Only geometric prefix lengths}
+For $n\ge1$, let $k=\lfloor\log_2 n\rfloor$ and output averages for lengths $1,2,4,\ldots,2^k$:
 \[
-A[i]=\frac{\sum_{j=0}^{2^i-1}X[j]}{2^i},\qquad 0\leq i\leq k.
+A[i]=\frac{\sum_{j=0}^{2^i-1}X[j]}{2^i},\qquad 0\le i\le k.
 \]
-Recomputing these sums costs
+Recomputing each prefix now costs
 \[
-\sum_{i=0}^k2^i=2^{k+1}-1=\Theta(n),
+1+2+4+\cdots+2^k=2^{k+1}-1=\Theta(n),
 \]
-not $\Theta(n\log n)$. A single scan with a running sum and a doubling next-prefix-length variable also takes $\Theta(n)$ time. Both approaches have $\Theta(\log n)$ output space and $O(1)$ working space. Thus avoiding recomputation here improves constants but not the asymptotic class.
-\par\noindent\begin{minipage}{\linewidth}
-\begin{lstlisting}
-s = 0; nextLength = 1; i = 0
-for j = 0 to n - 1:
-    s = s + X[j]
-    if j + 1 == nextLength:
-        A[i] = s / nextLength
-        i = i + 1
-        nextLength = 2 * nextLength
-\end{lstlisting}
-\end{minipage}\par
+because $2^k\le n<2^{k+1}$. Nested loops therefore need not be quadratic.
 
-\section{Mathematical toolkit}
-\sourcepages{51--53,79,92--94}
+A running-sum alternative also takes $\Theta(n)$ time:
+\begin{lstlisting}
+s <- 0; i <- 0; nextLength <- 1
+for j <- 0 to n-1:
+    s <- s + X[j]
+    if j+1 = nextLength:
+        A[i] <- s / nextLength
+        i <- i+1
+        nextLength <- 2 * nextLength
+\end{lstlisting}
+The two geometric-prefix methods have the same asymptotic running time, although their constants differ. Output space is $\Theta(\log n)$ as $n$ grows. For an empty input, return an empty output before using a logarithm.
+
+\section{Mathematical reference}
+\textit{Source: pp.\ 51--53, 92--94.}
 \begin{align*}
-a^{b+c}&=a^ba^c,& (a^b)^c&=a^{bc},& a^b/a^c&=a^{b-c},\\
-\log_b(xy)&=\log_bx+\log_by,& \log_b(x/y)&=\log_bx-\log_by,\\
-\log_b(x^a)&=a\log_bx,& \log_bx&=\frac{\log_cx}{\log_cb}.
+a^{b+c}&=a^ba^c,& (a^b)^c&=a^{bc},&a^b/a^c&=a^{b-c},\\
+\log_b(xy)&=\log_bx+\log_by,&
+\log_b(x/y)&=\log_bx-\log_by,\\
+\log_b(x^a)&=a\log_bx,&
+\log_bx&=\frac{\log_dx}{\log_db}.
 \end{align*}
-Here logarithm arguments are positive and bases are positive and unequal to one. $\lfloor x\rfloor$ is the largest integer at most $x$; $\lceil x\rceil$ is the smallest integer at least $x$.
+Logs require positive arguments and bases greater than $0$, unequal to $1$. $\lfloor x\rfloor$ is the greatest integer at most $x$; $\lceil x\rceil$ is the least integer at least $x$. Optional Stirling approximation:
 \[
-\sum_{i=1}^n i=\frac{n(n+1)}2,\qquad
-\sum_{i=0}^n id=d\frac{n(n+1)}2,\qquad
-\sum_{i=0}^n r^i=\frac{r^{n+1}-1}{r-1}\quad(r\ne1).
+n!\sim\sqrt{2\pi n}\left(\frac ne\right)^n.
 \]
-For fixed $r>1$, the geometric sum is $\Theta(r^n)$; for $r=1$ it is $n+1$; for fixed $0<r<1$ it is $\Theta(1)$. The arithmetic sum is $\Theta(n^2)$ when $d>0$ is fixed.
 
-Optional: Stirling's approximation is $n!\sim\sqrt{2\pi n}(n/e)^n$.
-
-\paragraph{Study checklist}
-Be able to give explicit constants for an asymptotic proof, distinguish a loose upper bound from a tight bound, count triangular and geometric loops, and explain why running sums improve ordinary prefix averages but not geometric prefix averages.
-
+\section{Quick review with answers}
+\begin{enumerate}
+\item Is $77n^2$ in $O(n^3)$, $\Omega(n^3)$, or $\Theta(n^3)$?\\
+\textbf{Answer:} only $O(n^3)$ of these three.
+\item What about $6n^3+n^2\log n$?\\
+\textbf{Answer:} all three, since it is $\Theta(n^3)$.
+\item What about $11n^4$?\\
+\textbf{Answer:} $\Omega(n^3)$ only.
+\item If $f(n)=n^2$ for even $n$ and $n^4$ for odd $n$, which of the three classes applies?\\
+\textbf{Answer:} none. The odd subsequence violates an $O(n^3)$ bound; the even subsequence violates an $\Omega(n^3)$ bound.
+\item Why does a doubling loop take logarithmic time?\\
+\textbf{Answer:} after $k$ iterations its counter is proportional to $2^k$; reaching $n$ requires $k=\Theta(\log n)$.
+\end{enumerate}
 \end{document}

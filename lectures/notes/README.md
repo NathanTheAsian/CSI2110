@@ -1,28 +1,33 @@
-# CSI2110 lecture notes
+# CSI 2110 lecture notes
 
-One standalone LaTeX document per distinct PDF under `lectures/`, with a compiled PDF beside it. Notes cover definitions, algorithm pseudocode, implementation details, complexity, worked lecture examples, and study checks. References use PDF page numbers rather than printed slide numbers.
+One self-contained LaTeX document for each supplied lecture deck, based on Bo Sun's Fall 2026 slides. The notes consolidate repeated animation slides and include definitions, algorithms, worked traces, complexity explanations, and review questions with answers.
 
-| Source in lectures/ | LaTeX notes | Readable PDF |
-|---|---|---|
-| [lec00-introduction.pdf](../lec00-introduction.pdf) | [lec00-introduction-notes.tex](lec00-introduction-notes.tex) | [PDF](lec00-introduction-notes.pdf) |
-| [lec01-analysis of algorithms.pdf](../lec01-analysis%20of%20algorithms.pdf) | [lec01-analysis-of-algorithms-notes.tex](lec01-analysis-of-algorithms-notes.tex) | [PDF](lec01-analysis-of-algorithms-notes.pdf) |
-| [lec02-stacks, queues, deques.pdf](../lec02-stacks,%20queues,%20deques.pdf) | [lec02-stacks-queues-deques-notes.tex](lec02-stacks-queues-deques-notes.tex) | [PDF](lec02-stacks-queues-deques-notes.pdf) |
-| [lec03-list.pdf](../lec03-list.pdf) | [lec03-lists-notes.tex](lec03-lists-notes.tex) | [PDF](lec03-lists-notes.pdf) |
-| [lec04-tree and binary tree.pdf](../lec04-tree%20and%20binary%20tree.pdf) | [lec04-trees-binary-trees-notes.tex](lec04-trees-binary-trees-notes.tex) | [PDF](lec04-trees-binary-trees-notes.pdf) |
-| [lec05-priority and heap.pdf](../lec05-priority%20and%20heap.pdf) | [lec05-priority-queues-heaps-notes.tex](lec05-priority-queues-heaps-notes.tex) | [PDF](lec05-priority-queues-heaps-notes.pdf) |
-| [0/Review.pdf](../0/Review.pdf) | [review-arrays-linked-lists-notes.tex](review-arrays-linked-lists-notes.tex) | [PDF](review-arrays-linked-lists-notes.pdf) |
+| Lecture | Notes | Source deck | PDF pages |
+| --- | --- | --- | --- |
+| 0 | [Introduction](lec00-introduction-notes.tex) | `lec00-introduction.pdf` | 44 |
+| 1 | [Analysis of algorithms](lec01-analysis-of-algorithms-notes.tex) | `lec01-analysis of algorithms.pdf` | 95 |
+| 2 | [Stacks, queues, and deques](lec02-stacks-queues-deques-notes.tex) | `lec02-stacks, queues, deques.pdf` | 53 |
+| 3 | [Lists](lec03-lists-notes.tex) | `lec03-list.pdf` | 37 |
+| 4 | [Trees and binary trees](lec04-trees-and-binary-trees-notes.tex) | `lec04-tree and binary tree.pdf` | 82 |
+| 5 | [Priority queues and heaps](lec05-priority-queues-and-heaps-notes.tex) | `lec05-priority and heap.pdf` | 84 |
 
-## Duplicate sources
+Source decks are in the parent `lectures` directory. References inside the notes use one-based PDF page numbers, which sometimes differ from printed slide numbers. Each document is independent: no external images, shared preamble, bibliography, or `input` files are required.
 
-SHA-256 checks confirmed that `1/lec01-analysis of algorithms.pdf`, `lecture5/lec02-stacks, queues, deques.pdf`, and `lecture5/lec03-list.pdf` are byte-for-byte copies of their top-level counterparts. The same notes cover those copies. Existing sources and the original `0/Review.tex` are preserved.
+## Reading and compiling
 
-## Editing and compiling
+Open any `.tex` file in Codex's built-in LaTeX editor to edit it and view the PDF preview. In a separately configured LaTeX installation, compile an individual file with `pdflatex` (or another compatible LaTeX engine).
 
-Each `.tex` file is self-contained; no shared preamble or external figure files are required. Open one in a LaTeX editor and compile with pdfLaTeX twice to update its table of contents.
+The documents use standard packages: `geometry`, `amsmath`, `amssymb`, `booktabs`, `tabularx`, `listings`, `xcolor`, and `hyperref`.
 
-```powershell
-pdflatex -interaction=nonstopmode -halt-on-error lec04-trees-binary-trees-notes.tex
-pdflatex -interaction=nonstopmode -halt-on-error lec04-trees-binary-trees-notes.tex
-```
+## Editorial conventions
 
-Explanations include clarified boundary cases and corrected notation where needed. Additional details are identified as clarifications or derived analysis. Course logistics in the introduction are recorded from the supplied slides, not independently verified current announcements.
+- Array indices start at zero unless a one-based alternative is explicitly given.
+- Tree heights and depths count edges; a leaf has height zero.
+- Logs are base two unless otherwise stated.
+- Complexity claims distinguish worst-case, amortized, and output-space costs where relevant.
+- Pseudocode includes boundary conditions and reference updates omitted in some slide sketches. Clear formula/indexing errors are corrected with explanations.
+- Course logistics are a record of the supplied slides, not a live check of Brightspace.
+
+## Validation
+
+All six source files were submitted to the built-in LaTeX compiler. The compiler failed before processing the documents with `Unable to find standard directories for platform`. Compilation and rendered layout therefore remain unverified. Source structure and the worked algorithm traces were checked separately.
