@@ -1,0 +1,95 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
+\definecolor{accent}{RGB}{25,65,100}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
+\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
+\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
+\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
+\newcommand{\cost}[1]{\ensuremath{O(#1)}}
+\newcommand{\method}[1]{\texttt{#1}}
+
+\title{\textbf{Review: Arrays and Linked Lists}\\\large CSI2110 -- Data Structures and Algorithms}\author{Lecture study notes}\date{}\begin{document}\maketitle
+\textbf{Source document:} \path{../0/Review.pdf}. These notes synthesize the existing review and clarify boundary cases. References use PDF page numbers.
+\tableofcontents\newpage
+
+\section{Array memory model}
+\sourcepages{1}
+The review illustrates contiguous Java integer slots. An \method{int} is a 32-bit value; the teaching model places consecutive slots four bytes apart:
+\begin{center}\begin{tabular}{@{}ccc@{}}\toprule
+Index & Illustrative address & Value\\\midrule
+0 & 1000 & 10\\1 & 1004 & 20\\2 & 1008 & 30\\3 & 1012 & 40\\\bottomrule
+\end{tabular}\end{center}
+If the base is $b$ and slot width $w$, slot $i$ is modeled at $b+wi$. This explains constant-time indexed access. Actual Java addresses/layout are managed by the JVM and not exposed as these raw addresses. Object arrays hold references, not all referenced objects contiguously.
+
+\section{Singly linked lists}
+\sourcepages{1--2}
+Each node stores an element and a next reference. Nodes may occupy unrelated addresses, such as $1000\to5000\to2400\to\method{null}$. Access follows references, rather than adding a byte offset.
+
+The source insertion example assumes a positive index and a valid predecessor. A complete version handles the head and validates indices:
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+insertAt(i, value):
+    require 0 <= i <= size
+    if i == 0:
+        head = new Node(value, head)
+        if size == 0: tail = head
+    else:
+        pred = head
+        repeat i - 1 times: pred = pred.next
+        p = new Node(value, pred.next)
+        pred.next = p
+        if i == size: tail = p
+    size = size + 1
+\end{lstlisting}
+\end{minipage}\par
+The pointer change is $O(1)$; locating the predecessor costs $O(i)$, so indexed insertion is $O(n)$ worst case. Save the old successor before changing the predecessor's next reference.
+
+\subsection{Tail-pointer question}
+A tail reference gives $O(1)$ append but does not identify the tail's predecessor. Removing the last node is therefore still $O(n)$ in a singly linked list. Head removal is $O(1)$.
+
+\section{Doubly linked lists}
+\sourcepages{2}
+Each node also stores a previous reference. A known interior node $x$ can be removed by rewiring \method{x.prev.next = x.next} and \method{x.next.prev = x.prev}.
+
+The review guards null neighbors; a complete list must also update head/tail for endpoint removal, otherwise stale references can remain:
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+removeKnownNode(x):
+    if x.prev != null: x.prev.next = x.next
+    else: head = x.next
+    if x.next != null: x.next.prev = x.prev
+    else: tail = x.prev
+    size = size - 1
+    invalidate x
+\end{lstlisting}
+\end{minipage}\par
+This takes $O(1)$ given a valid node in the list. Index-based removal adds traversal and remains $O(n)$ worst case. Sentinels simplify boundaries, but are not user entries.
+
+\section{Comparison}
+\begin{center}\small\begin{tabular}{@{}lccc@{}}\toprule
+Operation & Array sequence & Singly linked$^*$ & Doubly linked$^*$\\\midrule
+Read index & $O(1)$ & $O(n)$ & $O(n)$\\
+Local insertion & $O(n)$ worst & $O(1)$ with predecessor & $O(1)$ with position\\
+Local removal & $O(n)$ worst & $O(1)$ with predecessor & $O(1)$ with position\\
+Append & $O(1)$ if room & $O(1)$ & $O(1)$\\
+Remove last & $O(1)$ & $O(n)$ & $O(1)$\\\bottomrule
+\end{tabular}\end{center}
+$^*$Assume maintained head and tail references. Array growth may copy $O(n)$ entries; doubling gives amortized $O(1)$ append.
+
+\keyidea{Separate the time to locate an entry from the time to update its neighbors. Constant-time linked updates assume the needed references are available.}
+
+\section{Self-check}
+\begin{enumerate}
+\item Draw the references after inserting $15$ between $10$ and $20$.
+\item Removing the only node must leave both head and tail null.
+\item Explain why a singly linked queue is efficient but a singly linked deque is not: the queue removes at the head, while a deque must also remove at the tail.
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,218 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
+\definecolor{accent}{RGB}{25,65,100}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
+\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
+\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
+\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
+\newcommand{\cost}[1]{\ensuremath{O(#1)}}
+\newcommand{\method}[1]{\texttt{#1}}
+
+\title{\textbf{Lecture 5: Priority Queues and Heaps}\\\large CSI2110 -- Data Structures and Algorithms}\author{Lecture study notes}\date{}\begin{document}\maketitle
+\textbf{Source document:} \path{../lec05-priority and heap.pdf}. These notes synthesize the source and add worked explanations. References use PDF page numbers. Pseudocode includes boundary cases.
+\tableofcontents\newpage
+
+\section{Priority queues and ordering}
+\sourcepages{4--13}
+A priority queue stores entries $(k,v)$, where $k$ is the priority key and $v$ the associated value. Entries arrive in any order and leave according to priority. This lecture uses the minimum key as highest priority. Distinct entries may have equal keys.
+\begin{itemize}
+\item \method{insert(k,v)} adds an entry.
+\item \method{min()} inspects a minimum entry without removal.
+\item \method{removeMin()} removes and returns a minimum entry.
+\item \method{size()} and \method{isEmpty()} report container information. The lecture returns null on empty inspection/removal.
+\end{itemize}
+A comparator returns a negative result if $x<y$, zero for a tie, and positive if $x>y$. Reversing comparison changes the priority convention.
+
+A total order requires comparability, antisymmetry, and transitivity. Numeric and lexicographic orders are examples. Compare pairs by first coordinates, then second coordinates to break ties. Compare strings by the first differing character; a proper prefix comes before its longer extension.
+
+\textbf{Clarification:} ordering by string length alone ties distinct equal-length strings. This is a total preorder on strings (or total order on length-equivalence classes), not an antisymmetric order on distinct strings. It can still serve as a priority comparison. A lexicographic tie-breaker gives an order distinguishing equal-length strings. Tied priorities do not guarantee FIFO service unless explicitly implemented.
+
+\textbf{Java detail:} use \method{Integer.compare(a,b)} rather than \method{a-b}, which can overflow for extreme integers.
+
+\section{List implementations}
+\sourcepages{15--20}
+An unsorted positional list inserts at an end in $O(1)$. Minimum lookup scans all entries in $\Theta(n)$; removing the known minimum position then costs $O(1)$. It still scans if the current data happen to be sorted because the implementation maintains no sorted invariant.
+
+A sorted doubly linked positional list maintains increasing keys. Insertion may traverse $n$ entries to find its spot, taking $O(n)$ worst case. Minimum inspection/removal use the first node in $O(1)$.
+\begin{center}\begin{tabular}{@{}lccc@{}}\toprule
+Implementation & Insert & Minimum & Remove minimum\\\midrule
+Unsorted positional list & $O(1)$ & $\Theta(n)$ & $\Theta(n)$\\
+Sorted positional list & $O(n)$ & $O(1)$ & $O(1)$\\
+Binary min-heap & $O(\log n)$ repair & $O(1)$ & $O(\log n)$\\\bottomrule
+\end{tabular}\end{center}
+All store $O(n)$ entries. The sorted-list removal cost assumes linked positional removal; removing the front of a shifting array list would cost $O(n)$.
+
+\section{Heap shape and order}
+\sourcepages{22--26,53}
+A min-heap has two independent invariants: it is a complete binary tree, and every parent key is at most every child key. The minimum is at the root. Siblings and unrelated subtrees are not ordered relative to each other; the heap array is generally not sorted.
+
+For $n\geq1$, height is $\lfloor\log_2 n\rfloor$. A zero-based array stores entries at $0,\ldots,n-1$:
+\[
+\text{left}(i)=2i+1,\quad\text{right}(i)=2i+2,\quad
+\text{parent}(i)=\left\lfloor(i-1)/2\right\rfloor\quad(i>0).
+\]
+A child exists if its index is $<n$. Leaves occupy indices $\lfloor n/2\rfloor,\ldots,n-1$; for $n\geq2$, the last internal node is $\lfloor n/2\rfloor-1$.
+
+With one-based indexing, children are $2i,2i+1$ and parent is $\lfloor i/2\rfloor$. Do not mix conventions. A max-heap instead satisfies parent key at least child key.
+
+\section{Insertion and up-heap}
+\sourcepages{34--39}
+Append to the next available array slot, preserving complete shape, then repair the ancestor path:
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+insert(k, v):
+    append (k, v) to heap
+    upHeap(heap.size - 1)
+
+upHeap(j):
+    while j > 0:
+        p = floor((j - 1) / 2)
+        if key(p) <= key(j): return
+        swap heap[p] and heap[j]
+        j = p
+\end{lstlisting}
+\end{minipage}\par
+At most $h$ swaps are needed, so repair is $O(\log n)$. Stop on equality because duplicate keys are valid.
+
+\textbf{Slide insertion trace:}
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+Before: [3,4,7,21,10,20,8,22,28,13,19,25]
+Append 6 at index 12; swap with 20 at 5, then 7 at 2.
+After:  [3,4,6,21,10,7,8,22,28,13,19,25,20]
+\end{lstlisting}
+\end{minipage}\par
+The new key stops below root $3$.
+
+An array resize can make one insertion $O(n)$. With doubling, resizing contributes amortized $O(1)$, giving amortized $O(\log n)$ heap insertion. If sufficient capacity is available, worst-case insertion is $O(\log n)$.
+
+\section{Removal and down-heap}
+\sourcepages{27--33}
+Save the root, move the last entry to the root, remove the last slot, and repair downward. Using the last slot preserves complete shape.
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+removeMin():
+    if n == 0: return null
+    result = heap[0]
+    heap[0] = heap[n - 1]
+    remove final slot; n = n - 1
+    if n > 0: downHeap(0, n)
+    return result
+
+downHeap(j, n):  // active range [0, n)
+    while 2*j + 1 < n:
+        small = 2*j + 1
+        right = 2*j + 2
+        if right < n and key(right) < key(small):
+            small = right
+        if key(j) <= key(small): return
+        swap heap[j] and heap[small]
+        j = small
+\end{lstlisting}
+\end{minipage}\par
+\keyidea{Choose the smaller child in a min-heap. Choosing the larger can leave the parent greater than the unchosen smaller child.}
+Only the moved entry can violate order after a swap. It descends at most $h$ levels, so removal is $O(\log n)$ without array shrinking. A last-level internal node may have only a left child; check whether the right child exists.
+
+\textbf{Slide removal trace (a separate starting heap):}
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+Before: [3,4,6,21,10,7,20,22,28,13,19,25,20]
+Move final 20 to root and remove final slot.
+Repair follows indices 0 -> 1 -> 4 -> 9.
+After:  [4,10,6,21,13,7,20,22,28,20,19,25]
+\end{lstlisting}
+\end{minipage}\par
+The returned key is $3$.
+
+\section{Heap construction}
+\sourcepages{41--59}
+\subsection{Repeated insertion}
+Insert all entries sequentially. The total is bounded by $\sum_{k=1}^nO(\log k)=O(n\log n)$, with worst-case $\Theta(n\log n)$ for adversarial order. Favorable orders can require fewer swaps.
+
+\subsection{Bottom-up heapify}
+Leaves are heaps already. Process internal nodes from last to first:
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+buildHeap(A):
+    n = A.length
+    for i = floor(n / 2) - 1 down to 0:
+        downHeap(i, n)
+\end{lstlisting}
+\end{minipage}\par
+Before each repair, both child subtrees are heaps. Down-heap makes the current subtree a heap. At index zero, the entire array becomes a heap.
+
+\subsection{Linear-time proof}
+Charging every repair $O(\log n)$ gives a loose $O(n\log n)$ bound. Most nodes are near leaves and can move only a few levels. At depth $i$, at most $2^i$ nodes can move at most $h-i$ levels:
+\begin{align*}
+\text{swaps}&\leq\sum_{i=0}^{h-1}(h-i)2^i
+=2^h\sum_{j=1}^h\frac{j}{2^j}\\
+&\leq2^h\cdot2\leq2n.
+\end{align*}
+Loop/comparison overhead is also $O(n)$, so total time is $\Theta(n)$. Iterative repair gives $O(1)$ auxiliary space.
+
+\subsection{Lecture exercise}
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+Input: [14,9,8,25,5,11,27,16,15,4,12,6,7,23,20]
+Process indices: 6, 5, 4, 3, 2, 1, 0
+Final: [4,5,6,15,9,7,20,16,25,14,12,11,8,23,27]
+\end{lstlisting}
+\end{minipage}\par
+Check that each parent is at most its children. Tied priorities can lead to different valid heap arrays.
+
+\section{Sorting through a priority queue}
+\sourcepages{61--64,82}
+Insert every input entry and repeatedly extract the minimum into the output. The comparator determines output order.
+\begin{center}\small\begin{tabular}{@{}lccc@{}}\toprule
+PQ structure & Build & Extraction & Worst-case total\\\midrule
+Unsorted list & $O(n)$ & $\Theta(n^2)$ & $\Theta(n^2)$\\
+Sorted list & $O(n^2)$ & $O(n)$ & $\Theta(n^2)$\\
+Heap, repeated inserts & $O(n\log n)$ & $O(n\log n)$ & $O(n\log n)$\\
+Heap, bottom-up build & $\Theta(n)$ & $O(n\log n)$ & $O(n\log n)$\\\bottomrule
+\end{tabular}\end{center}
+Assume efficient input/output access. Repeated front removal from a shifting array list would itself cost $\Theta(n^2)$; scan the input array or heapify it directly. A separate heap/output implementation needs $O(n)$ extra storage.
+
+\section{In-place heapsort}
+\sourcepages{65--81}
+For ascending output, build a max-heap. Move its root (the current maximum) to the last active slot, shorten the active prefix, and repair that prefix. The suffix is sorted.
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+heapSort(A):
+    n = A.length
+    buildMaxHeap(A)
+    for end = n - 1 down to 1:
+        swap A[0] and A[end]
+        downMaxHeap(0, end)  // active range [0, end)
+\end{lstlisting}
+\end{minipage}\par
+Max-heap repair chooses the larger child and stops when the parent is at least that child. Max-heap construction uses the same bottom-up index order with reversed comparisons.
+
+\textbf{Invariant:} before extraction, the active prefix is a max-heap, and the suffix contains the largest entries in ascending order. Repair must exclude the sorted suffix.
+\par\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+Initial max-heap: [8,5,6,1,4]
+First repair:     [6,5,4,1 | 8]
+Second repair:    [5,1,4 | 6,8]
+Third repair:     [4,1 | 5,6,8]
+Sorted:           [1,4,5,6,8]
+\end{lstlisting}
+\end{minipage}\par
+Build is $\Theta(n)$, and all extraction work is $O(n\log n)$. Standard heapsort has $\Theta(n\log n)$ worst-case time and $O(1)$ auxiliary space with iterative repair. It is generally not stable: tied entries may change relative order. A min-heap placing extracted minima at the right end would produce descending output.
+
+\section{Study checks}
+\begin{enumerate}
+\item Does a heap need to be full? No: completeness is the shape condition.
+\item Is the heap array sorted? No: order constrains parents and children, not all pairs.
+\item Why choose the last entry to replace the root? It preserves shape without shifting.
+\item Why is bottom-up heapify linear? Most nodes have small subtree height.
+\item Why shrink the active range in heapsort? Otherwise repairs disturb the sorted suffix.
+\end{enumerate}
+
+\end{document}
