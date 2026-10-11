@@ -42,9 +42,10 @@ public class SequenceAlgs<E> {
 	 */
 	
 	public void inplaceReverse(Sequence<E> S) {
+		//two pointer implementation
 		int left = 0;
 		int right = S.size() - 1;
-		E temp;
+		E temp; //temp variable for swapping
 		while (left < right) {
 			temp = S.get(left);
 			S.set(left, S.get(right));

@@ -1,0 +1,51 @@
+@startuml
+
+class "LinkedBinarySearchTree<E extends Comparable>" as BST {
+    - Node<E> root
+    - int size
+    + LinkedBinarySearchTree()
+    + boolean add(E elem)
+    - Node<E> insert(E elem, Node<E> curr, Node<E> from)
+    + void printPreorderRecursive()
+    + void printInorderRecursive()
+    + void printPostorderRecursive()
+    + Iterator iterator() 
+}
+
+class "LinkedBinarySearchTree.Node<E>" as Node {
+    - E elem
+    - Node<E> parent
+    - Node<E> left
+    - Node<E> right
+    + Node(E e, Node<E> p, Node<E> l, Node<E> r)
+}
+
+class java.util.Iterator<E> {
+    + boolean hasNext()
+    + E Next()
+    + void remove()
+
+}
+
+class "LinkedBinarySearchTree.PreorderIterator implements Iterator<E>" as PreorderBST  {
+    + Node<E> next
+    + hasNext()
+    + next()
+    + remove()
+}
+
+class "LinkedBinarySearchTree.InorderIterator implements Iterator<E>" as InorderBST  {
+    + Node<E> next
+    + hasNext()
+    + next()
+    + remove()
+}
+
+
+BST *-- Node
+Node --> Node : parent
+Node --> Node : left
+Node --> Node : right
+PreorderIterator ..> java.util.Iterator
+
+@enduml
