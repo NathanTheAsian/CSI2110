@@ -11,7 +11,7 @@ One self-contained LaTeX document for each supplied lecture deck, based on Bo Su
 | 4 | [Trees and binary trees](lec04-trees-and-binary-trees-notes.tex) | `lec04-tree and binary tree.pdf` | 82 |
 | 5 | [Priority queues and heaps](lec05-priority-queues-and-heaps-notes.tex) | `lec05-priority and heap.pdf` | 84 |
 
-Source decks are in the parent `lectures` directory. References inside the notes use one-based PDF page numbers, which sometimes differ from printed slide numbers. Each document is independent: no external images, shared preamble, bibliography, or `input` files are required.
+Source decks are in [../slides](../slides). The original review is in [../review](../review). References inside the notes use one-based PDF page numbers, which sometimes differ from printed slide numbers. Each document is independent: no external images, shared preamble, bibliography, or `input` files are required.
 
 ## Reading and compiling
 
