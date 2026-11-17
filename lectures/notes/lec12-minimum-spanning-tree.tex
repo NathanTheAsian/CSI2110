@@ -16,29 +16,358 @@
 \newcommand{\method}[1]{\texttt{#1}}
 
 \title{\textbf{Lecture 12: Minimum Spanning Tree}\\\large CSI2110 -- Data Structures and Algorithms}\author{Lecture study notes}\date{}\begin{document}\maketitle
-\textbf{Source document:} \path{../slides/lec05-priority and heap.pdf}. These notes synthesize the source and add worked explanations. References use PDF page numbers. Pseudocode includes boundary cases.
+\textbf{Source document:} \texttt{../slides/lec12-minimum spanning tree.pdf}. These notes consolidate the slides and appendix proofs, with worked explanations and study questions. References use one-based PDF page numbers. Pseudocode handles the root and disconnected inputs explicitly.
 \tableofcontents\newpage
 
-\section{Prim's Algorithm}
+\section{Minimum Spanning Tree Basics}
+\sourcepages{4--8}
+
+Let $G=(V,E)$ be a connected, undirected, weighted graph, with $n=|V|$ vertices and $m=|E|$ edges. A \textbf{spanning tree} $T=(V,A)$ contains every vertex, is connected, and has no cycles. Consequently, $|A|=n-1$.
+
+A \textbf{minimum spanning tree (MST)} minimizes the total edge weight
+\[
+  w(T)=\sum_{e\in A}w(e)
+\]
+over all spanning trees of $G$. A typical application is connecting all cities or computers while minimizing the total cost of installed links.
+
 \begin{itemize}
-    \item Prim's algorithm is a greedy alg that uses a binary heap data structure to find the minimum spanning tree for a weighted, undirected graph. 
-    \item Prim's algorithm grows a tree, $T$ = ($S$, $A$) by including MORE vertex at each epoch.
-    \begin{itemize}
-        \item The vertex set can be split into two parts whenever:
-        \begin{itemize}
-            \item $S$ set of verticies that are already in $T$
-            \item $Q$ set of other verticies: $Q$ = $V$ - $S$
-        \end{itemize} 
-    \end{itemize} 
-    \item At each epoch, find a min-weight edge $e$ = ($u$,$v$): $u$ $\in$ $S$ and v $\in$ $Q$
-    \begin{itemize}
-        \item Add $v$ to $S$ and add $e$ to $A$
-    \end{itemize}
+  \item A BFS or DFS tree is a spanning tree of a connected graph, but need not minimize total weight.
+  \item An MST minimizes the \emph{total cost of the tree}; it need not give shortest paths from a particular source.
+  \item Tied weights can produce several MSTs. Every MST has the same total cost. Distinct edge weights guarantee a unique MST, but ties do not necessarily imply multiple MSTs.
+  \item Zero and negative weights are allowed: Prim and Kruskal compare edge weights, and their correctness does not require nonnegative weights.
+  \item A disconnected graph has no spanning tree. Its analogue is a \textbf{minimum spanning forest}: one MST per connected component. With $c$ components, it has $n-c$ edges.
 \end{itemize}
 
-\subsection{Implementation}
+\section{Prim's Algorithm}
+\sourcepages{10--14}
+
+\keyidea{Grow one tree by repeatedly adding the cheapest edge from a vertex already in the tree to a vertex outside it.}
+
+Prim grows $T=(S,A)$ one vertex at a time. Here $S$ is the set of included vertices, $A$ is the set of chosen edges, and $Q=V\setminus S$ is the set of remaining vertices. Start at any vertex $s$. At each step, select a minimum-weight edge $(u,v)$ with $u\in S$ and $v\in Q$, then add $v$ to $S$ and the edge to $A$.
+
+\subsection{Labels and the connection to Dijkstra}
+For each $v\in Q$, maintain:
+\[
+ D[v]=\min\{w(u,v):u\in S,\ (u,v)\in E\},
+\]
+with $D[v]=\infty$ if there is no such edge. Store $P[v]$, the vertex in $S$ that achieves this minimum. An adaptable min-priority queue stores the vertices of $Q$, keyed by $D$.
+
+After extracting $u$, inspect each neighbor $v$ still in $Q$:
+\[
+\begin{array}{ll}
+\text{Prim:} & D[v]\gets\min\{D[v],w(u,v)\},\\[2pt]
+\text{Dijkstra:} & D[v]\gets\min\{D[v],D[u]+w(u,v)\}.
+\end{array}
+\]
+\textbf{Prim's key is one connecting edge's weight, not a distance from $s$.}
+Both algorithms extract a minimum-key vertex, but they optimize different quantities. Prim's selected edge weights can decrease from one step to the next.
+
+\newpage
+\subsection{Implementation and worked trace}
+\sourcepages{14--28}
+
+\begin{lstlisting}[caption={Prim using an adaptable binary min-heap}]
+Algorithm prim(G, s):
+    if V is empty: return empty edge set
+    for each vertex v:
+        D[v] <- infinity; P[v] <- null
+    D[s] <- 0                       // s must be in V
+    Q <- heap of all vertices, keyed by D
+    A <- empty edge set
+    while Q is not empty:
+        u <- Q.removeMin()
+        if D[u] = infinity:
+            report "disconnected: no spanning tree"; stop
+        if P[u] != null:            // root has no parent edge
+            add edge (P[u], u) to A
+        for each edge (u, v) incident to u:
+            if v is still in Q and w(u, v) < D[v]:
+                D[v] <- w(u, v)
+                P[v] <- u
+                Q.decreaseKey(handle[v], D[v])
+    return A
+\end{lstlisting}
+
+Keep a heap handle for each vertex, and an $\texttt{inQ}$ flag or equivalent membership record. This permits $O(1)$ membership checks and $O(\log n)$ key decreases. Update both the label and its heap key. The first extraction puts $s$ in $S$ without adding an edge.
+
+\textbf{Lecture example.} The graph on pages 15--28 has edges
+\[
+\begin{gathered}
+ab:4,\ ah:8,\ bc:8,\ bh:11,\ cd:7,\ cf:4,\ ci:2,\\
+de:9,\ df:14,\ ef:10,\ fg:2,\ gh:1,\ gi:6,\ hi:7.
+\end{gathered}
+\]
+Here $ab:4$ means the undirected edge $(a,b)$ has weight 4. Start at $a$ and choose $c$ before $h$ when both have key 8. Each row lists label changes \emph{after} extracting that vertex.
+
+\begin{center}\small
+\begin{tabular}{clcl}
+\toprule
+Extract & Edge added & Key & Changed labels of vertices still in $Q$ \\
+\midrule
+$a$ & none & 0 & $D[b]=4,\ D[h]=8$ \\
+$b$ & $ab$ & 4 & $D[c]=8$ \\
+$c$ & $bc$ & 8 & $D[d]=7,\ D[f]=4,\ D[i]=2$ \\
+$i$ & $ci$ & 2 & $D[g]=6,\ D[h]=7$ \\
+$f$ & $cf$ & 4 & $D[e]=10,\ D[g]=2$ \\
+$g$ & $fg$ & 2 & $D[h]=1$ \\
+$h$ & $gh$ & 1 & none \\
+$d$ & $cd$ & 7 & $D[e]=9$ \\
+$e$ & $de$ & 9 & none \\
+\bottomrule
+\end{tabular}
+\end{center}
+The eight chosen edges cost $4+8+2+4+2+1+7+9=\boxed{37}$. Choosing $h$ before $c$ at the tie can give another MST, replacing $bc$ by $ah$.
+
+\newpage
+\section{Exchange, Cycle, and Cut Properties}
+\sourcepages{30--35, 64--65}
+
+\subsection{Exchange property}
+Let $T$ be a tree and $e=(u,v)$ an edge not in $T$, with both endpoints in $T$. There is exactly one $u$--$v$ path in $T$. Adding $e$ creates exactly one cycle: that path together with $e$. Removing any edge $f$ on this cycle gives another tree:
+\[
+ T'=(T\cup\{e\})\setminus\{f\},\qquad
+ w(T')=w(T)+w(e)-w(f).
+\]
+Removing a cycle edge preserves connectivity because the rest of the cycle supplies an alternative route. Removing an arbitrary edge \emph{outside} the cycle does not have this guarantee.
+
+\subsection{Cycle property}
+If $T$ is an MST and $e\notin T$, every tree edge $f$ on the cycle created by adding $e$ satisfies $w(f)\leq w(e)$. Otherwise, swapping out a heavier $f$ for $e$ would produce a cheaper spanning tree, contradicting minimality.
+
+\textbf{Useful consequence:} an edge that is \emph{strictly heavier than every other edge} on a cycle belongs to no MST. With a tie for the largest weight, a particular maximum-weight edge may still belong to an MST. For example, any two edges of an all-weight-1 triangle form an MST.
+
+\subsection{Cuts and safe edges}
+A \textbf{cut} partitions $V$ into two nonempty sets $S$ and $V\setminus S$. Its \textbf{cut-set} contains all edges with one endpoint on each side. Every spanning tree must cross each cut.
+
+\textbf{Cut property:} any minimum-weight edge $e$ crossing a cut belongs to \emph{some} MST. If it is the \emph{unique} minimum-weight crossing edge, it belongs to \emph{every} MST.
+
+\textbf{Exchange proof.} Take an MST $T$. If $e\in T$, nothing needs changing. Otherwise, adding $e$ creates a cycle that must cross the cut again along another edge $f$. Choose such an $f$ \emph{on that cycle}. Since $e$ is minimum across the cut, $w(e)\leq w(f)$, so $T-f+e$ is a spanning tree of no greater cost and hence is also an MST. If $e$ is uniquely lightest, omitting it would allow a strictly cheaper tree.
+
+\subsection{Why Prim is correct}
+\textbf{Invariant:} after each step, there exists an MST containing \emph{all} edges chosen so far, $A$. Initially, $A=\varnothing$, so the invariant holds.
+
+Suppose an MST $T$ contains $A$, and Prim chooses the lightest edge $e$ across $(S,V\setminus S)$. If $e\in T$, the invariant is preserved. Otherwise, add $e$ and remove a crossing edge $f$ on the resulting cycle. No chosen edge of $A$ crosses this cut: both its endpoints are already in $S$. Thus $f\notin A$, and $T-f+e$ still contains all old choices plus $e$. By the cut argument it is also an MST.
+
+After $n-1$ edge additions, $A$ is a spanning tree contained in an MST. Both have $n-1$ edges, so they are the same tree. This proves optimality.
+
+\textbf{Proof trap:} showing each chosen edge belongs to \emph{some} MST separately is insufficient; all choices must remain compatible with \emph{one} MST.
+
+\newpage
+\section{Kruskal's Algorithm}
+\sourcepages{40--53, 57, 59}
+
+\keyidea{Process edges globally from cheapest to most expensive. Accept an edge exactly when it joins two different components of the current forest.}
+
+Start with all vertices and no edges: each vertex is its own cluster. Accepted edges merge clusters. An edge within one cluster would create a cycle, so discard it. Unlike Prim, the intermediate solution may contain several separate trees.
+
+\begin{lstlisting}[caption={Kruskal using a partition and an edge min-heap}]
+Algorithm kruskal(G):
+    if V is empty: return empty edge set
+    P <- partition with one singleton set per vertex
+    Q <- heap of all edges, keyed by weight
+    A <- empty edge set
+    while |A| < |V| - 1 and Q is not empty:
+        (u, v) <- Q.removeMin()
+        if P.find(u) != P.find(v):
+            add edge (u, v) to A
+            P.union(u, v)
+        // Otherwise reject this edge: it closes a cycle
+    return A
+\end{lstlisting}
+
+Sorting all edges once in nondecreasing order is an alternative to the heap. Stop after $n-1$ \emph{accepted} edges, not $n-1$ examined edges. If the queue empties first, the result is a minimum spanning forest.
+
+\subsection{Worked lecture example}
+The graph on pages 44--53 has edges
+\[
+\begin{gathered}
+bc:2,\ ae:3,\ dg:4,\ ce:8,\ ab:9,\ cg:12,\\
+cd:13,\ bg:14,\ af:15,\ bf:17,\ fg:18,\ ef:19.
+\end{gathered}
+\]
+The table lists the components \emph{after} each edge is considered.
+
+\begin{center}\small
+\begin{tabular}{cll}
+\toprule
+Edge (weight) & Decision & Components \\
+\midrule
+$bc\ (2)$ & accept & $\{b,c\},\{a\},\{d\},\{e\},\{f\},\{g\}$ \\
+$ae\ (3)$ & accept & $\{a,e\},\{b,c\},\{d\},\{f\},\{g\}$ \\
+$dg\ (4)$ & accept & $\{a,e\},\{b,c\},\{d,g\},\{f\}$ \\
+$ce\ (8)$ & accept & $\{a,b,c,e\},\{d,g\},\{f\}$ \\
+$ab\ (9)$ & reject & endpoints already in $\{a,b,c,e\}$ \\
+$cg\ (12)$ & accept & $\{a,b,c,d,e,g\},\{f\}$ \\
+$cd\ (13)$ & reject & endpoints already in the same component \\
+$bg\ (14)$ & reject & endpoints already in the same component \\
+$af\ (15)$ & accept & $\{a,b,c,d,e,f,g\}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Six edges have been accepted for seven vertices; stop. The MST has cost
+\[
+ 2+3+4+8+12+15=\boxed{44}.
+\]
+An edge can be rejected even if its weight is less than that of a later accepted edge: the rejection is about a cycle, not the edge's weight alone.
+
+\newpage
+\section{Kruskal: Correctness and the Partition Structure}
+\subsection{Correctness invariant}
+\sourcepages{55, 66--68}
+
+Write the sorted edges as $e_1,\ldots,e_m$, and let $A_i$ contain the edges accepted after examining $e_i$. The stronger lecture invariant is:
+\[
+ A_i\subseteq T_{\mathrm{opt}}
+ \subseteq A_i\cup\{e_{i+1},\ldots,e_m\}
+ \quad\text{for some MST }T_{\mathrm{opt}}.
+\]
+In words, an MST exists that contains all accepted edges and none of the rejected edges. The empty initial forest satisfies the invariant.
+
+\begin{enumerate}
+ \item \textbf{Reject the next edge $e$.} Its endpoints are already connected by edges of $A_i$. Any tree containing $A_i$ cannot also contain $e$, since this would create a cycle. The same $T_{\mathrm{opt}}$ still works.
+ \item \textbf{Accept $e$, and it is already in $T_{\mathrm{opt}}$.} Keep that MST; it now contains $A_i\cup\{e\}$.
+ \item \textbf{Accept $e$, but it is absent from $T_{\mathrm{opt}}$.} Adding $e$ to $T_{\mathrm{opt}}$ creates a cycle. The cycle contains an edge $f$ not in $A_i$, because $A_i\cup\{e\}$ is acyclic. By the invariant, $f$ is still unexamined; hence $w(f)\geq w(e)$. Replace $f$ by $e$. The result is an MST containing the new accepted set and no rejected edges.
+\end{enumerate}
+At termination on a connected graph, the accepted $n-1$ edges form an MST. The same reasoning applies within each connected component for a disconnected graph.
+
+\subsection{Partition operations}
+\sourcepages{57--60}
+
+Kruskal needs a collection of disjoint sets representing the current components:
 \begin{itemize}
-    \item Similar to Dijkstra's algorithm. 
+ \item $\method{find}(u)$ returns the set containing $u$.
+ \item $\method{union}(u,v)$ merges the two sets containing $u$ and $v$.
 \end{itemize}
+\textbf{The lecture's implementation} stores each set as a sequence with its size, and stores a reference from each vertex back to its set. Therefore $\method{find}$ takes $O(1)$ time.
+
+For $\method{union}$, merge the \emph{smaller} sequence into the larger and update every moved vertex's set reference. For component sizes $n_u,n_v$, one union costs
+\[
+ O(\min\{n_u,n_v\}).
+\]
+The sequence representation must support moving/concatenating the smaller list without copying the larger one, for example using linked lists with suitable endpoints.
+
+\subsection{Why all unions together cost \texorpdfstring{$O(n\log n)$}{O(n log n)}}
+Whenever a vertex's reference changes, it was in the smaller component. Its new component has at least twice as many vertices. After $k$ such moves, that component has size at least $2^k$. Since it never exceeds $n$, $k\leq\lfloor\log_2 n\rfloor$.
+
+Thus each of the $n$ vertices is relabeled at most $O(\log n)$ times, for $O(n\log n)$ total work. This is an \textbf{aggregate bound}; an individual union need not take $O(\log n)$. For example, merging two size-$n/2$ sets costs $O(n)$.
+
+\newpage
+\section{Performance and Exam Checklist}
+\sourcepages{37--38, 60--61}
+
+\subsection{Prim with an adaptable binary heap}
+There are $n$ extractions, at most $O(m)$ successful decreases, and $\sum_{u\in V}\deg(u)=2m$ adjacency-list entries to inspect.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Work & Total cost \\
+\midrule
+Initialize labels and build heap bottom-up & $O(n)$ \\
+$n$ calls to remove-min & $O(n\log n)$ \\
+Scan all adjacency lists & $O(m)$ \\
+At most $O(m)$ calls to decrease-key & $O(m\log n)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Total: $\boxed{O((n+m)\log n)}$, or $O(m\log n)$ for a connected graph with $n\geq2$, since $m\geq n-1$.
+
+With an \textbf{adjacency matrix and the same heap}, scanning all rows costs $O(n^2)$, giving $O(n^2+m\log n)$. As an alternative implementation, a matrix plus an unsorted array of keys gives $O(n^2)$: scan $n$ keys to choose each vertex and scan its matrix row to update neighbors. This avoids heap overhead on dense graphs.
+
+Prim uses $O(n)$ auxiliary space for labels, parents, handles, and heap, in addition to the input graph and the $O(n)$ output tree.
+
+\subsection{Kruskal with the lecture's sequence-based partition}
+Initialize $n$ sets in $O(n)$; build the edge heap in $O(m)$; extract up to $m$ edges in $O(m\log m)$; perform $O(m)$ constant-time finds; and spend $O(n\log n)$ across all unions. Thus, for nontrivial inputs,
+\[
+ \boxed{O(m\log m+n\log n)}.
+\]
+For a simple graph, $m=O(n^2)$, so $\log m=O(\log n)$ and the lecture writes this as $O((m+n)\log n)$. For a connected simple graph, it simplifies to $O(m\log n)$. If parallel edges are allowed, retain the $\log m$ bound unless a bound on $m$ is given. The heap and partition require $O(m+n)$ auxiliary space.
+
+\subsection{What to remember}
+\begin{center}\small
+\begin{tabular}{p{0.20\linewidth}p{0.35\linewidth}p{0.35\linewidth}}
+\toprule
+ & \textbf{Prim} & \textbf{Kruskal} \\
+\midrule
+Partial solution & One growing tree & Forest of components \\
+Greedy choice & Cheapest edge leaving the tree & Cheapest remaining edge joining different components \\
+Queue stores & Vertices, keyed by connection cost & Edges, keyed by weight \\
+Cycle avoidance & Add a vertex outside $S$ & Compare component identities \\
+Main support & Adaptable priority queue & Edge ordering and partition \\
+\bottomrule
+\end{tabular}
+\end{center}
+\textbf{Common mistakes:} adding $D[u]$ in Prim's update; adding a parent edge for the root; forgetting decrease-key; treating a tied cut minimum as mandatory in every MST; counting examined edges instead of accepted edges in Kruskal; or assuming every union is constant time.
+
+\newpage
+\section{Study Questions}
+Try these without the answer key. For traces, show the selected edges, label or component changes, and final total cost.
+
+\begingroup\small
+\begin{enumerate}\setlength{\itemsep}{3pt}
+ \item \textbf{Definitions.} What conditions make a subgraph a spanning tree? How many edges does it contain? What extra requirement makes it an MST?
+ \item \textbf{Different objectives.} In a triangle with $ab=2$, $ac=3$, and $bc=2$, find an MST and a shortest-path tree rooted at $a$. Do they have the same total cost?
+ \item \textbf{Prim's labels.} Define $D[v]$ and $P[v]$ for a vertex outside $S$. Write the update rule, and explain why it does not include $D[u]$.
+ \item \textbf{Trace Prim.} Use vertices $\{A,B,C,D,E\}$ and edges
+ \[
+ AB:2,\ AC:3,\ BC:1,\ BD:4,\ CD:5,\ CE:6,\ DE:2.
+ \]
+ Start at $A$. Record each extracted vertex, the edge added, and all changed keys. What is the final cost?
+ \item \textbf{Trace Kruskal.} On the same graph, order edges by weight; break the weight-2 tie by processing $AB$ before $DE$. Which edges are accepted or rejected before the algorithm stops? Show the components after each accepted edge.
+ \item \textbf{Exchange argument.} Why does adding a non-tree edge to a tree create exactly one cycle? Why must the edge removed during an exchange lie on that cycle?
+ \item \textbf{Cut property and ties.} A cut has crossing-edge weights $4,4,7$. Must one particular weight-4 edge occur in every MST? What if the weights are $3,4,7$ instead?
+ \item \textbf{Cycle property and ties.} A cycle has edge weights $2,5,9$. What can you conclude about the weight-9 edge? What changes if the weights are $2,9,9$?
+ \item \textbf{Prove Prim safe.} State its correctness invariant. In the exchange proof, why can the removed edge not be one that Prim has already selected?
+ \item \textbf{Prove Kruskal safe.} State the stronger invariant involving unexamined edges. Explain both the rejection case and the exchange used when an accepted edge is absent from the current MST.
+ \item \textbf{Runtime.} Derive Prim's bound with adjacency lists and a binary heap. What changes with a matrix and the same heap? How can matrix-based Prim run in $O(n^2)$?
+ \item \textbf{Partition analysis.} In the lecture's sequence representation, what are the costs of find and a single union? Why are there only $O(n\log n)$ pointer updates across all unions? Why is merging the smaller set important?
+ \item \textbf{Stopping and disconnected graphs.} A graph has 10 vertices and 3 connected components. How many edges will Kruskal's final forest contain? Why might it examine more than $n-1$ edges? How does the supplied Prim pseudocode detect disconnection?
+ \item \textbf{Negative weights.} Run both algorithms on a triangle with $ab=-2$, $ac=3$, $bc=1$ (start Prim at $a$). What is the MST cost, and why do negative weights not invalidate these algorithms?
+ \item \textbf{Uniqueness.} Does a repeated edge weight guarantee several MSTs? Give a counterexample. What condition on all edge weights guarantees uniqueness?
+ \item \textbf{Diagnose code.} A student's Prim code updates $D[v]$ but never calls decrease-key, and always adds $(P[u],u)$ after extracting $u$. Identify both bugs. A second student stops Kruskal after examining $n-1$ edges; explain the error.
+\end{enumerate}
+\endgroup
+
+\newpage
+\section{Study Question Answer Key}
+\begin{enumerate}
+ \item It contains all vertices, is connected, and is acyclic, so it has $n-1$ edges. An MST has minimum total edge weight among all spanning trees.
+ \item The MST is $\{ab,bc\}$, with cost $4$. The shortest-path tree from $a$ is $\{ab,ac\}$, with cost $5$: the direct path to $c$ costs $3$, whereas the MST path costs $4$.
+ \item $D[v]$ is the cheapest edge weight connecting $v$ to $S$; $P[v]$ is its endpoint in $S$. The update is $D[v]\gets\min\{D[v],w(u,v)\}$. We pay for one new connecting edge, not the whole path from the start.
+ \item The trace is:
+ \begin{center}\small
+ \begin{tabular}{cll}
+ \toprule
+ Extract & Add & Key changes after extraction \\
+ \midrule
+ $A$ & none & $D[B]=2,\ D[C]=3$ \\
+ $B$ & $AB$ & $D[C]=1,\ D[D]=4$ \\
+ $C$ & $BC$ & $D[E]=6$ \\
+ $D$ & $BD$ & $D[E]=2$ \\
+ $E$ & $DE$ & none \\
+ \bottomrule
+ \end{tabular}
+ \end{center}
+ The cost is $2+1+4+2=\boxed{9}$. The extracted keys $0,2,1,4,2$ are not nondecreasing.
+ \item Accept $BC(1)$, giving components $\{B,C\},\{A\},\{D\},\{E\}$.\par
+ Then accept $AB(2)$, giving $\{A,B,C\},\{D\},\{E\}$.\par
+ Next accept $DE(2)$, leaving $\{A,B,C\}$ and $\{D,E\}$.\par
+ Reject $AC(3)$ because it closes a cycle. Accept $BD(4)$ to join the two components. Stop after four accepted edges; total cost $9$.
+ \item A tree has a unique path between the edge's endpoints, giving exactly one cycle when the edge is added. Removing a cycle edge breaks that cycle and leaves an alternative route between its endpoints. Removing an edge outside the cycle leaves the cycle intact and disconnects the graph.
+ \item With $4,4,7$, each weight-4 crossing edge belongs to some MST, but the tie alone does not imply either is in every MST. With $3,4,7$, the weight-3 edge is the unique lightest crossing edge and belongs to every MST.
+ \item The unique heaviest edge (weight 9) is in no MST. With $2,9,9$, neither weight-9 edge is excluded solely by this rule; either may appear in an MST. In a triangle with those weights, an MST uses the 2-edge and one 9-edge.
+ \item Some MST contains all edges chosen so far. The removed edge crosses $(S,V\setminus S)$, whereas every already chosen edge has both endpoints in $S$. Hence the exchange preserves all previous choices.
+ \item $A_i\subseteq T_{\mathrm{opt}}\subseteq A_i\cup\{e_{i+1},\ldots,e_m\}$ for some MST. A rejected edge closes a cycle with $A_i$, so no tree containing $A_i$ can include it. For an accepted edge absent from $T_{\mathrm{opt}}$, add it and remove an unexamined edge on the resulting cycle. That edge is at least as heavy, preserving optimality and all earlier choices.
+\end{enumerate}
+
+\newpage
+\subsection*{Answer key continued}
+\begin{enumerate}\setcounter{enumi}{10}
+ \item With adjacency lists, heap construction costs $O(n)$, extractions cost $O(n\log n)$, scanning costs $O(m)$, and decreases cost $O(m\log n)$, totaling $O((n+m)\log n)$. A matrix with the same heap gives $O(n^2+m\log n)$. A matrix with linear key selection uses $n$ iterations of $O(n)$ work each, totaling $O(n^2)$.
+ \item Find costs $O(1)$; union costs $O(\min\{n_u,n_v\})$. Each moved vertex enters a set at least twice as large, so its reference changes at most $\lfloor\log_2 n\rfloor$ times. Summing over all vertices gives $O(n\log n)$. Moving the larger set instead can repeatedly relabel almost all vertices, producing $\Theta(n^2)$ work over a sequence of unions.
+ \item The forest contains $n-c=10-3=7$ edges. Rejected cycle edges count as examined but do not increase the accepted total. In a disconnected graph, Kruskal eventually exhausts its queue. Prim detects disconnection by extracting a vertex whose key is still $\infty$ after exhausting the start vertex's component. To obtain a forest using Prim, restart from an unvisited vertex in each remaining component.
+ \item Prim extracts $a$, adds $ab(-2)$, then adds $bc(1)$. Kruskal also accepts $ab$ and $bc$. The cost is $-2+1=\boxed{-1}$. The exchange and cut proofs compare edge weights and still work for negative values.
+ \item No. A triangle with weights $1,1,2$ has a unique MST consisting of its two weight-1 edges. All distinct edge weights guarantee uniqueness: if two MSTs differed, take the lightest edge in their symmetric difference. Adding it to the tree lacking it creates a cycle with a heavier edge absent from the first tree; exchanging those edges contradicts minimality.
+ \item Without decrease-key, the heap may extract a vertex according to a stale key, violating Prim's greedy choice. The root has $P[s]=\texttt{null}$, so add a parent edge only when the parent exists. Kruskal must stop after $n-1$ \emph{accepted} edges (or an empty queue), because rejected edges do not connect components.
+\end{enumerate}
 
 \end{document}
