@@ -1,0 +1,39 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
+\definecolor{accent}{RGB}{25,65,100}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
+\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
+\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
+\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
+\newcommand{\cost}[1]{\ensuremath{O(#1)}}
+\newcommand{\method}[1]{\texttt{#1}}
+
+\title{\textbf{Lecture 8: (2,4) trees}\\\large CSI2110 -- Data Structures and Algorithms}\author{Lecture study notes}\date{}\begin{document}\maketitle
+\textbf{Source document:} \path{../lec05-(2,4) trees.pdf}. These notes synthesize the source and add worked explanations. References use PDF page numbers. Pseudocode includes boundary cases.
+\tableofcontents\newpage
+
+\section{Multi-Way Search Tree}
+A multi-way search tree is an ordered tree such that:
+\begin{itemize}
+    \item Nodes can store more than one element/key.
+    \subitem Children are denoted $v_1$, $v_2$, ... , $v_{d-1}$ 
+    \subitem Elements are denoted $k_1$, $k_2$, ... , $k_{d-1}$
+    \item All elements are sorted within the node, and children (and their elements) are sorted respective to their parent node's elements 
+    \item Leaves store no entries, left for placeholding
+\end{itemize}
+
+\section{Multi-Way Searching}
+\keyidea{How do we search for elements in a multi way tree?}
+Given an element $k_i$, we traverse the nodes and their elements.
+\begin{itemize}
+    \item 
+\end{itemize}
+
+\end{document}

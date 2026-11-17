@@ -1,0 +1,44 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
+\definecolor{accent}{RGB}{25,65,100}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
+\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
+\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
+\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
+\newcommand{\cost}[1]{\ensuremath{O(#1)}}
+\newcommand{\method}[1]{\texttt{#1}}
+
+\title{\textbf{Lecture 12: Minimum Spanning Tree}\\\large CSI2110 -- Data Structures and Algorithms}\author{Lecture study notes}\date{}\begin{document}\maketitle
+\textbf{Source document:} \path{../slides/lec05-priority and heap.pdf}. These notes synthesize the source and add worked explanations. References use PDF page numbers. Pseudocode includes boundary cases.
+\tableofcontents\newpage
+
+\section{Prim's Algorithm}
+\begin{itemize}
+    \item Prim's algorithm is a greedy alg that uses a binary heap data structure to find the minimum spanning tree for a weighted, undirected graph. 
+    \item Prim's algorithm grows a tree, $T$ = ($S$, $A$) by including MORE vertex at each epoch.
+    \begin{itemize}
+        \item The vertex set can be split into two parts whenever:
+        \begin{itemize}
+            \item $S$ set of verticies that are already in $T$
+            \item $Q$ set of other verticies: $Q$ = $V$ - $S$
+        \end{itemize} 
+    \end{itemize} 
+    \item At each epoch, find a min-weight edge $e$ = ($u$,$v$): $u$ $\in$ $S$ and v $\in$ $Q$
+    \begin{itemize}
+        \item Add $v$ to $S$ and add $e$ to $A$
+    \end{itemize}
+\end{itemize}
+
+\subsection{Implementation}
+\begin{itemize}
+    \item Similar to Dijkstra's algorithm. 
+\end{itemize}
+
+\end{document}

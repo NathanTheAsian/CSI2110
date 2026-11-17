@@ -45,11 +45,20 @@ public final class GridNetwork {
         }
         
         //Finding neighbors and linking travel time
+        /*
+        int[][] neighbors = {
+            {0, left, right, top, bottom}, 
+            ... 
+            {(m*n), left, right, top, bottom}
+        }; 
+
+        
+        */
+
         for (int row = 0;row < roads.length; row++) {
-            System.out.print("v" + roads[row][0] + ", ");
-            System.out.print("u" + roads[row][1] + ", ");
-            System.out.println("time" + roads[row][2]);
-            
+            System.out.print("v" + roads[row][0] + ", "); //root 
+            System.out.print("u" + roads[row][1] + ", "); //neighbor to root
+            System.out.println("time" + roads[row][2]); //travel time
         }
         System.out.println(" ");
     
