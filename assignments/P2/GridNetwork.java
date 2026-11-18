@@ -25,6 +25,8 @@ public final class GridNetwork {
         }
     }
 
+    public GridNetwork.Status currentStatus;
+
     /**
      * Each row of roads is {u,v,time}
      * The partition starts with n*m singleton clusters. All vertices start blocked.
@@ -36,7 +38,8 @@ public final class GridNetwork {
         this.travelTime = new int[n*m][5];
         this.partition = partition;
         this.open = new boolean[n*m];
-        this.neighbors = new int[n*m][5];
+        this.neighbors = new int[n*m][5]; 
+
         
          //initiate nodeGrid
         int vertexID = 0;
@@ -123,14 +126,26 @@ public final class GridNetwork {
     /**
      * Apply this stage's {row,col} repairs cumulatively, then summarize the network.
      * Queries contain {source,target} vertex identifiers.
+     * id(r,c) = r * m + c
      */
     public Status repairStage(int[][] repairs, int[][] queries) {
-        int openCount = 0;
+        int opened;
+        
         for (int i = 0; i < repairs.length;i++) {    
-            partition.union(repairs[i][0],repairs[i][0]);
-            open[repairs[i][0]] = true;
-            open[repairs[i][1]] = true;
-            openCount+=2;
+            int row = repairs[i][0]; //r
+            int col = repairs[i][1]; //c
+            System.out.println(repairs[i].length + " Repairs");
+            opened += repairs[i].length;
+            
+            System.out.println(" (" + row + "," + col + ") ");
+            System.out.println("Node " + (row * m + col));
+            
+            //opens road via boolean[] open at index id(r,c) 
+            open[(row*m+col)] = true;
+            
+            System.out.println(Arrays.toString(open));
+            System.out.println(opened + " open intersections");
         }
+        return new Status(opened, null, null);
     }
 }
