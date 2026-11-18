@@ -1,3 +1,4 @@
+import java.util.Arrays;
 
 /** Rectangular road network with cumulative intersection repairs. */
 public final class GridNetwork {
@@ -29,8 +30,15 @@ public final class GridNetwork {
      * The partition starts with n*m singleton clusters. All vertices start blocked.
      */
     public GridNetwork(int n, int m, int[][] roads, Partition partition) {
+        this.n = n;
+        this.m = m;
+        this.vertexCount = n*m;
+        this.travelTime = new int[n*m][5];
+        this.partition = partition;
+        this.open = new boolean[n*m];
+        this.neighbors = new int[n*m][5];
         
-        //initiate nodeGrid
+         //initiate nodeGrid
         int vertexID = 0;
         int[][] nodeGrid = new int[n][m];
         for (int row = 0;row < n; row++) {
@@ -43,26 +51,86 @@ public final class GridNetwork {
             }
             System.out.println(" ");
         }
+        System.out.println("Neighbors");
         
         //Finding neighbors and linking travel time
-        for (int row = 0;row < roads.length; row++) {
-            System.out.print("v" + roads[row][0] + ", ");
-            System.out.print("u" + roads[row][1] + ", ");
-            System.out.println("time" + roads[row][2]);
+
+
+
+        for (int count = 0;count < roads.length; count++) {
+
+            int centerNode = roads[count][0];
+            int oppositeNode = roads[count][1];
+           
+            arrayInsert(neighbors[centerNode], roads[count][1], neighbors[centerNode][4],false);
+            arrayInsert(neighbors[oppositeNode], roads[count][0], neighbors[oppositeNode][4],false);
+            neighbors[centerNode][4]++;
+            neighbors[oppositeNode][4]++; 
             
+                       travelTime[centerNode][travelTime[centerNode][4]] = roads[count][2];
+                       travelTime[oppositeNode][travelTime[oppositeNode][4]] = roads[count][2];
+           
+           
+                       // arrayInsert(travelTime[centerNode],roads[count][2],travelTime[centerNode][4],true);
+                       // arrayInsert(travelTime[oppositeNode],roads[count][2],travelTime[oppositeNode][4],true);
+                       
+
+            travelTime[centerNode][4]++;
+            travelTime[oppositeNode][4]++;
+            
+
+
         }
-        System.out.println(" ");
-    
-        throw new UnsupportedOperationException("");
+
+        // // Print neighbors after they're filled
+        // printAll();
+        
+        
     }
+    public void printAll() {
+        for (int i = 0; i < neighbors.length; i++) {
+            System.out.print("Node " + i + ": ");
+            for (int j = 0; j < neighbors[i][4]; j++) {
+                System.out.print("(" + travelTime[i][j] + ",");
+                System.out.print(neighbors[i][j] + ") ");
+            }
+            System.out.println("| " + neighbors[i][4]);
+
+        }
+    }
+
+    public void arrayInsert(int[] data, int value, int size, boolean duplicateCheck){
+
+            for(int i = 0; i <= size ; i++){
+                if(!duplicateCheck && data[i] == value){
+                    return;
+                }
+
+                if(data[i] == 0){
+                    data[i] = value;
+                    return;
+                }
+                
+                if(data[i] > value){
+                    int temp = data[i];
+                    data[i] = value;
+                    value = temp;
+                }
+            }
+        }
+
 
     /**
      * Apply this stage's {row,col} repairs cumulatively, then summarize the network.
      * Queries contain {source,target} vertex identifiers.
      */
     public Status repairStage(int[][] repairs, int[][] queries) {
-       
-       // TODO 2: Implement the repair updates and connectivity report.
-        throw new UnsupportedOperationException("Complete GridNetwork.repairStage");
+        int openCount = 0;
+        for (int i = 0; i < repairs.length;i++) {    
+            partition.union(repairs[i][0],repairs[i][0]);
+            open[repairs[i][0]] = true;
+            open[repairs[i][1]] = true;
+            openCount+=2;
+        }
     }
 }
