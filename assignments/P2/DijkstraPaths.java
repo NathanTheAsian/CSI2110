@@ -19,7 +19,11 @@ public final class DijkstraPaths {
      * Use long distances and Long.MAX_VALUE for infinity
      */
     public static Route shortestRoute(GridNetwork network, int source, int target) {
-        // TODO 3: Implement Dijkstra's algorithm with the provided adaptable queue.
-        throw new UnsupportedOperationException("Complete DijkstraPaths.shortestRoute");
+        /*
+        Starting at vertex(source) check each neighbor and their traveltimes (refer to gridNetwork data)
+
+        */
+        
+        
     }
 }
