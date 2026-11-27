@@ -1,0 +1,330 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage{mathtools}
+\usepackage[margin=0.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
+\definecolor{accent}{RGB}{25,65,100}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
+\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
+\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
+\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
+\newcommand{\cost}[1]{\ensuremath{O(#1)}}
+\newcommand{\method}[1]{\texttt{#1}}
+
+\title{\textbf{Lecture 10: Graph Traversals}\\\large CSI2110 -- Data Structures and Algorithms}\author{Lecture study notes}\date{}\begin{document}\maketitle
+\textbf{Source document:} \path{../lec10-graph traversals.pdf}. These notes synthesize the source and add worked explanations. References use PDF page numbers. Pseudocode includes boundary cases.
+{\small\tableofcontents}\newpage
+\section{Subgraphs, Connectivity, Trees, and Forests}
+\sourcepages{4--8}
+
+Throughout these notes, $G=(V,E)$ is an \textbf{undirected} graph, $n=|V|$, and $m=|E|$. Unless stated otherwise, examples are simple graphs (no self-loops or parallel edges). The traversal results and edge classifications below use these assumptions.
+
+\subsection{Subgraphs and spanning subgraphs}
+$G'=(V',E')$ is a \textbf{subgraph} of $G$ when $V'\subseteq V$ and $E'\subseteq E$, with both endpoints of every edge in $E'$ belonging to $V'$. A \textbf{spanning subgraph} keeps every vertex: $V'=V$. It may omit edges, but cannot introduce new ones.
+
+\textbf{Example.} If $G$ is the triangle with edges $AB,BC,AC$, then the edge $AB$ with vertices $\{A,B\}$ is a subgraph. Keeping all three vertices and only edges $AB,BC$ gives a spanning subgraph.
+
+\subsection{Connectivity and connected components}
+Vertices $u$ and $v$ are \textbf{connected} if a path joins them. A graph is \textbf{connected} if every pair of vertices is connected. A \textbf{connected component} is a maximal connected subgraph: no additional vertex of $G$ can be included while retaining connectivity. Components partition $V$; an isolated vertex forms a component by itself.
+
+\subsection{Trees and forests}
+A \textbf{tree} is a connected, undirected graph with no cycles. A \textbf{forest} is an undirected graph with no cycles; each of its connected components is a tree.
+
+Useful consequences (for a nonempty graph):
+\begin{itemize}
+    \item A tree has exactly one simple path between any two vertices and has $n-1$ edges.
+    \item Removing any tree edge disconnects the tree; adding an edge between two existing nonadjacent vertices creates a cycle.
+    \item A forest with $c$ connected components has $n-c$ edges.
+\end{itemize}
+
+\subsection{Spanning trees and spanning forests}
+A \textbf{spanning tree} of a connected graph $G$ is a spanning subgraph that is a tree. It connects every vertex using $n-1$ edges. A connected graph has a unique spanning tree exactly when it is itself a tree: an edge on a cycle can be omitted in different ways to obtain different spanning trees.
+
+The slide definition of a \textbf{spanning forest} is a spanning subgraph that is a forest. Under this broad definition, it could omit connections within an original component. In traversal applications, we mean \textbf{one spanning tree per connected component of $G$}. If $G$ has $c$ components, that traversal forest has $n-c$ discovery edges.
+
+\keyidea{A traversal from one starting vertex explores its component. An outer loop over all still-unvisited vertices is needed to explore a disconnected graph completely.}
+
+\clearpage
+\section{Depth-First Search (DFS)}
+\sourcepages{10--13}
+
+\keyidea{Start at an arbitrary vertex and follow unvisited neighbors as far as possible. When no unvisited neighbor remains, backtrack until another unexplored branch is available.}
+
+Recursion supplies a stack of active calls. A vertex is marked when it is first entered, so cycles cannot cause repeated recursive visits. An iterative version can use an explicit stack; reproducing the exact recursive order requires preserving where each adjacency scan stopped.
+
+\subsection{Labels and graph operations}
+\begin{itemize}
+    \item Vertex labels: \method{UNEXPLORED} or \method{VISITED}.
+    \item Edge labels: \method{UNEXPLORED}, \method{DISCOVERY}, or \method{BACK}.
+    \item \method{incidentEdges(v)} lists edges touching $v$; \method{opposite(v,e)} returns the other endpoint of an incident edge $e$.
+    \item A discovery edge first reaches an unexplored vertex. A back edge is an unexplored edge whose opposite endpoint has already been visited.
+\end{itemize}
+An undirected edge occurs in two adjacency lists, but represents \emph{one edge object with one label}. Test its label before processing it. Otherwise the reverse occurrence of a discovery edge could be incorrectly labelled as a back edge.
+
+\subsection{Complete DFS pseudocode}
+\begin{lstlisting}
+DFSAll(G):
+    for each vertex v in G.vertices():
+        vertexLabel[v] = UNEXPLORED
+        parent[v] = NONE
+    for each edge e in G.edges():
+        edgeLabel[e] = UNEXPLORED
+    for each vertex v in G.vertices():
+        if vertexLabel[v] == UNEXPLORED:
+            DFS(G, v)                 // start a new component tree
+
+DFS(G, v):
+    vertexLabel[v] = VISITED
+    for each e in G.incidentEdges(v):
+        if edgeLabel[e] == UNEXPLORED:
+            w = G.opposite(v, e)
+            if vertexLabel[w] == UNEXPLORED:
+                edgeLabel[e] = DISCOVERY
+                parent[w] = v
+                DFS(G, w)
+            else:
+                edgeLabel[e] = BACK
+\end{lstlisting}
+\textbf{Initialization matters.} Use \method{DFSAll} for a full traversal. A direct call to \method{DFS(G,s)} assumes labels are already initialized and visits only the component containing $s$. The outer loop also handles isolated vertices; an empty graph requires no calls.
+
+\clearpage
+\section{DFS Worked Example and Properties}
+\sourcepages{11--24}
+
+\subsection{Trace the lecture graph}
+The adjacency lists below fix the order of each scan. In an undirected graph, $AB$ and $BA$ denote the same edge.
+\begin{center}
+\begin{tabular}{cl}
+\toprule
+Vertex & Neighbors in scan order \\
+\midrule
+$A$ & $B,C,D,E$ \\
+$B$ & $A,C$ \\
+$C$ & $B,A,D,E$ \\
+$D$ & $A,C$ \\
+$E$ & $A,C$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Starting at $A$:
+\begin{center}
+\begin{tabular}{p{0.21\linewidth}p{0.69\linewidth}}
+\toprule
+Action & Explanation \\
+\midrule
+$A\to B\to C$ & $AB$ and $BC$ are discovery edges. The already-labelled parent edges are skipped. \\
+Inspect $CA$ & $A$ is already visited, so $AC$ is a back edge. \\
+$C\to D$ & $CD$ is a discovery edge. At $D$, $DA$ is a back edge; $DC$ is already labelled. Return to $C$. \\
+$C\to E$ & $CE$ is a discovery edge. At $E$, $EA$ is a back edge. Return through $C$, $B$, and $A$. \\
+Finish at $A$ & $AC$, $AD$, and $AE$ already have labels; no further calls are needed. \\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{itemize}
+    \item \textbf{First-visit order:} $A,B,C,D,E$.
+    \item \textbf{Completion order:} $D,E,C,B,A$.
+    \item \textbf{Discovery edges:} $AB,BC,CD,CE$; \textbf{back edges:} $AC,AD,AE$.
+    \item The active call stack when $D$ is entered is $[A,B,C,D]$ (bottom to top). After $D$ returns it is $[A,B,C]$; entering $E$ gives $[A,B,C,E]$.
+\end{itemize}
+Changing the starting vertex or adjacency order can change the traversal order and spanning tree.
+
+\subsection{Why the properties hold}
+\begin{enumerate}
+    \item \textbf{Coverage:} DFS from $s$ visits all vertices and edges of its component. If a reachable vertex were unvisited, a path to it would contain an edge from a visited vertex to an unvisited one; scanning that edge would visit it.
+    \item \textbf{Spanning tree:} each newly visited vertex except the root gets one discovery edge from its parent. These edges connect it to the root without creating a cycle, giving a spanning tree of the component.
+    \item \textbf{Back edges:} in an undirected DFS, each non-tree edge joins a vertex to an ancestor in the discovery tree. A back edge plus the tree path between its endpoints forms a cycle.
+\end{enumerate}
+For example, back edge $AC$ and tree path $A,B,C$ form cycle $A,B,C,A$. The ancestor property depends on DFS and undirected edges; it is not a general rule for every traversal or for directed graphs.
+
+\clearpage
+\section{DFS Applications and Path Finding}
+\sourcepages{25--28}
+
+The lecture describes specializing a traversal using the \textbf{template method pattern}: keep the traversal structure and customize the work performed on vertex visits or edge discoveries.
+
+\subsection{Connected components and spanning forests}
+In \method{DFSAll}, increment a component counter whenever an unexplored root starts a new DFS. During that call, assign the same component identifier to every vertex visited. The final count is the number of components. Retaining all discovery edges gives one spanning tree per component, hence a spanning forest. Vertices $u,v$ are connected exactly when their component identifiers agree.
+
+\subsection{Cycle detection}
+If DFS finds a back edge, combine it with the parent chain to obtain a simple cycle. For a simple undirected graph, no back edges in a full traversal means the graph is a forest. Skip the already-labelled parent edge: traversing the same undirected edge in reverse is not a cycle.
+
+\subsection{Finding a path and escaping a maze}
+Model maze junctions (and the entrance and exit) as vertices and passages as edges. DFS can find a path from the entrance to the exit, but it does \emph{not} guarantee the fewest passages.
+
+For a general source $s$ and target $t$, maintain a stack $S$ containing the current path. The following version stores vertices; edges between consecutive vertices are implicit. The slides also show pushing edges explicitly between vertices.
+\begin{lstlisting}
+FindPath(G, s, t):
+    mark every vertex UNEXPLORED
+    S = empty stack
+    if Visit(s): return a copy of S from bottom to top
+    return NO_PATH
+
+Visit(v):
+    vertexLabel[v] = VISITED
+    S.push(v)
+    if v == t: return true
+    for each e in G.incidentEdges(v):
+        w = G.opposite(v, e)
+        if vertexLabel[w] == UNEXPLORED:
+            if Visit(w): return true    // propagate success immediately
+    S.pop()                           // abandon this unsuccessful branch
+    return false
+\end{lstlisting}
+Assume $s,t\in V$. If $s=t$, return $[s]$. If they lie in different components, return \method{NO\_PATH}. Keep visited labels when backtracking; popping a vertex removes it from the current path, not from the visited set.
+
+\textbf{Worked backtracking step.} In the slide example from $2$ to $6$, the search follows $2,1,5,4$, explores the dead end $3$, and pops $3$ before continuing from $4$ to $6$. The returned path is $2,1,5,4,6$; $3$ is visited but is not on the answer path.
+
+\textbf{Why return a Boolean?} Returning success through every active recursive call prevents a found path from being popped or overwritten. This makes the stopping behavior explicit where the slide pseudocode is abbreviated. All applications above take $O(n+m)$ time with adjacency lists; path search can stop earlier.
+
+\clearpage
+\section{Breadth-First Search (BFS)}
+\sourcepages{30--33}
+
+\keyidea{Explore in distance layers: visit the start, then vertices one edge away, then two edges away, and so on. A FIFO queue implements this order.}
+
+The slides store sequences $L_0,L_1,\ldots$, with $L_0=[s]$. Scanning vertices of $L_i$ discovers vertices for $L_{i+1}$. A queue is equivalent: remove from the front and add newly discovered vertices at the back.
+
+\subsection{BFS pseudocode using layers}
+\begin{lstlisting}
+BFSAll(G):
+    for each vertex v in G.vertices():
+        vertexLabel[v] = UNEXPLORED
+        parent[v] = NONE
+        distance[v] = INFINITY
+    for each edge e in G.edges():
+        edgeLabel[e] = UNEXPLORED
+    for each vertex s in G.vertices():
+        if vertexLabel[s] == UNEXPLORED:
+            BFS(G, s)
+
+BFS(G, s):
+    L = [s]
+    vertexLabel[s] = VISITED
+    distance[s] = 0
+    while L is not empty:
+        nextLevel = empty sequence
+        for each v in L, in order:
+            for each e in G.incidentEdges(v):
+                if edgeLabel[e] == UNEXPLORED:
+                    w = G.opposite(v, e)
+                    if vertexLabel[w] == UNEXPLORED:
+                        edgeLabel[e] = DISCOVERY
+                        vertexLabel[w] = VISITED
+                        parent[w] = v
+                        distance[w] = distance[v] + 1
+                        nextLevel.insertLast(w)
+                    else:
+                        edgeLabel[e] = CROSS
+        L = nextLevel
+\end{lstlisting}
+\textbf{Mark on discovery.} Mark a vertex when adding it to a layer (or enqueuing it), so multiple neighbors cannot schedule it repeatedly. A cross edge is an unexplored edge to an already discovered vertex; the reverse occurrence of a discovery edge is skipped.
+
+\textbf{Disconnected graphs.} Each new root in \method{BFSAll} starts at distance zero. These distances are from the root of each component, not from a single common source. To compute distances from a particular $s$, initialize once and call only \method{BFS(G,s)}; unreachable vertices retain infinity.
+
+\clearpage
+\section{BFS Worked Example and Shortest Paths}
+\sourcepages{31--39}
+
+\subsection{Trace the lecture graph}
+Use the consistent adjacency lists in the later animation frames (some earlier frames contain a mistyped entry):
+\begin{center}
+\begin{tabular}{cl}
+\toprule
+Vertex & Neighbors in scan order \\
+\midrule
+$A$ & $B,C,D$ \\
+$B$ & $A,C,E$ \\
+$C$ & $A,B,E,F,D$ \\
+$D$ & $A,C,F$ \\
+$E$ & $B,C$ \\
+$F$ & $C,D$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{center}
+\begin{tabular}{p{0.18\linewidth}p{0.72\linewidth}}
+\toprule
+Process & Result \\
+\midrule
+$L_0=[A]$ & Discover $B,C,D$ through $AB,AC,AD$. Set $L_1=[B,C,D]$. \\
+$B$ in $L_1$ & Label $BC$ cross ($C$ is already discovered); discover $E$ through $BE$. \\
+$C$ in $L_1$ & Label $CE$ cross; discover $F$ through $CF$; label $CD$ cross. \\
+$D$ in $L_1$ & Label $DF$ cross; $F$ is already discovered. Thus $L_2=[E,F]$. \\
+$L_2=[E,F]$ & All incident edges are labelled. The next level is empty, so stop. \\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{itemize}
+    \item \textbf{First-visit order:} $A,B,C,D,E,F$.
+    \item \textbf{Discovery edges:} $AB,AC,AD,BE,CF$.
+    \item \textbf{Cross edges:} $BC,CE,CD,DF$.
+    \item \textbf{Distances:} $d(A)=0$, $d(B)=d(C)=d(D)=1$, $d(E)=d(F)=2$.
+\end{itemize}
+
+\subsection{BFS properties and why shortest paths work}
+BFS visits every vertex and edge of the source component; discovery edges form a spanning tree of that component. For each $v\in L_i$, the tree path from $s$ to $v$ has exactly $i$ edges, and \emph{no path in $G$ from $s$ to $v$ has fewer than $i$ edges}.
+
+\textbf{Reason.} All vertices in earlier layers are processed first. If a shorter path to $v$ existed, the preceding vertex on that path would have been reached in an earlier layer and would have discovered $v$ sooner.
+
+Recover a shortest path by following \method{parent} from the target back to the source, then reversing the sequence. For $F$, the parents give $F,C,A$, hence path $A,C,F$ of length two. Another equally short path can exist; adjacency order determines which is returned. The guarantee minimizes \textbf{number of edges}, not total weight when edges have unequal weights.
+
+For any edge $uv$ within the source component, $|d(u)-d(v)|\leq 1$: a larger gap would give a shorter route to the deeper endpoint. A non-tree (cross) edge joins vertices at the same or adjacent levels, neither an ancestor of the other. When an unexplored edge is first classified while scanning level $i$, its visited opposite endpoint lies in level $i$ or $i+1$.
+
+\clearpage
+\section{Running Time, Space, and DFS versus BFS}
+\sourcepages{24--25, 40--42}
+
+\subsection{Time analysis for both traversals}
+Assume vertex/edge label access, adjacency-list iteration steps, and stack/queue operations take $O(1)$ time.
+\begin{itemize}
+    \item Initialization takes $O(n+m)$. Each vertex is labelled unexplored once and visited once; each edge is labelled unexplored once and classified once.
+    \item Each visited vertex has its incident-edge collection scanned once.
+    \item In an undirected adjacency-list representation,
+    \[
+        \sum_{v\in V}\deg(v)=2m.
+    \]
+    Thus edge occurrences contribute $O(m)$ time, even though each edge appears at both endpoints.
+\end{itemize}
+The resulting running time for a full traversal is \boxed{O(n+m)}. With an \textbf{adjacency matrix}, scanning the neighbors of one vertex requires inspecting $n$ entries; scanning all $n$ vertices takes \boxed{O(n^2)}. This difference matters especially for sparse graphs.
+
+If labels are already initialized, exploring one component with $n_s$ vertices and $m_s$ edges takes $O(n_s+m_s)$ using adjacency lists. Initializing the entire graph first still incurs $O(n+m)$ overall.
+
+\subsection{Space (additional explanation)}
+DFS can have $O(n)$ active calls along a long path. BFS can keep $O(n)$ vertices in its frontier across a broad level. Parent, distance, and vertex-label arrays each use $O(n)$ space. The slide algorithms also keep $O(m)$ edge labels, so their total auxiliary storage is $O(n+m)$; a basic traversal without edge classification can use $O(n)$ auxiliary storage, excluding the graph itself.
+
+\subsection{Comparison}
+\begin{center}
+\small
+\begin{tabular}{p{0.32\linewidth}p{0.29\linewidth}p{0.29\linewidth}}
+\toprule
+Feature & DFS & BFS \\
+\midrule
+Strategy & Deep branch, then backtrack & Increasing distance layers \\
+Main data structure & Recursion / stack (LIFO) & Queue (FIFO) / level lists \\
+Finds a path if one exists & Yes & Yes \\
+Minimum-edge path guaranteed & No & Yes \\
+Non-tree edges (undirected) & Back edges to ancestors & Cross edges within or between adjacent levels \\
+Discovery edges & Spanning tree per component & Spanning tree per component \\
+Adjacency-list time & $O(n+m)$ & $O(n+m)$ \\
+Typical use here & Components, cycles, maze paths & Minimum-edge paths, distances \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\clearpage
+\subsection{Quick study checks}
+\sourcepages{summary of 4--42; next topic on 43}
+\begin{enumerate}
+    \item \textbf{Does one DFS/BFS call necessarily visit the entire graph?} Only if its start can reach every vertex. Otherwise use the outer loop.
+    \item \textbf{How many discovery edges are produced?} $n-1$ for a connected nonempty graph; $n-c$ over $c$ components.
+    \item \textbf{Is every edge to a visited vertex a cycle?} Skip already-labelled edges first. In undirected DFS, a newly classified back edge certifies a cycle.
+    \item \textbf{Does changing adjacency order change BFS distances?} No. It can change parents, traversal order, and the particular shortest path returned.
+    \item \textbf{Why can DFS miss the shortest path?} It may follow a long branch to the target before trying a direct edge. BFS processes all shorter layers first.
+\end{enumerate}
+\textbf{Scope.} The final slide announces shortest paths as the next topic. This lecture establishes the unweighted, minimum-edge guarantee of BFS; weighted shortest-path algorithms are not developed in this PDF.
+\end{document}

@@ -1,0 +1,21 @@
+\contentsline {section}{\numberline {1}Minimum Spanning Tree Basics}{2}{section.1}%
+\contentsline {section}{\numberline {2}Prim's Algorithm}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Labels and the connection to Dijkstra}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Implementation and worked trace}{3}{subsection.2.2}%
+\contentsline {section}{\numberline {3}Exchange, Cycle, and Cut Properties}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Exchange property}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Cycle property}{4}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Cuts and safe edges}{4}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Why Prim is correct}{4}{subsection.3.4}%
+\contentsline {section}{\numberline {4}Kruskal's Algorithm}{5}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Worked lecture example}{5}{subsection.4.1}%
+\contentsline {section}{\numberline {5}Kruskal: Correctness and the Partition Structure}{6}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Correctness invariant}{6}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Partition operations}{6}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Why all unions together cost $O(n\log n)$}{6}{subsection.5.3}%
+\contentsline {section}{\numberline {6}Performance and Exam Checklist}{7}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Prim with an adaptable binary heap}{7}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Kruskal with the lecture's sequence-based partition}{7}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}What to remember}{7}{subsection.6.3}%
+\contentsline {section}{\numberline {7}Study Questions}{8}{section.7}%
+\contentsline {section}{\numberline {8}Study Question Answer Key}{9}{section.8}%

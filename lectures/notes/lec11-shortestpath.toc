@@ -1,0 +1,7 @@
+\contentsline {section}{\numberline {1}Shortest Path Problem}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Subpath Optimality}{2}{subsection.1.1}%
+\contentsline {section}{\numberline {2}Dijkstra's Algorithm}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}How it Works}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Implementation}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Correctness}{3}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Performance for PQ implemented by heap}{4}{subsection.2.4}%

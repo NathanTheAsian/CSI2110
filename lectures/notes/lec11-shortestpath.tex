@@ -1,0 +1,177 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}
+\usepackage{textcomp}
+\usepackage{amsmath,amssymb,booktabs,array,xcolor,listings,hyperref,fancyhdr}
+\definecolor{accent}{RGB}{25,65,100}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small CSI2110 -- Study Notes}\fancyhead[R]{\small Fall 2026}\fancyfoot[C]{\thepage}
+\lstset{basicstyle=\small\ttfamily,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{accent!25},backgroundcolor=\color{accent!3},showstringspaces=false,tabsize=2}
+\newcommand{\sourcepages}[1]{\textit{Source: PDF pages #1.}}
+\newcommand{\keyidea}[1]{\par\textbf{Key idea.} #1\par}
+\newcommand{\cost}[1]{\ensuremath{O(#1)}}
+\newcommand{\method}[1]{\texttt{#1}}
+
+\title{\textbf{Lecture 11: Shortest Paths}\\\large CSI2110 -- Data Structures and Algorithms}\author{Lecture study notes}\date{}\begin{document}\maketitle
+\textbf{Source document:} \path{../lec11-shortest paths.pdf}. These notes synthesize the source and add worked explanations. References use PDF page numbers. Pseudocode includes boundary cases.
+\tableofcontents\newpage
+\section{Shortest Path Problem}
+\keyidea{Given a weighted graph (undirected or directed) find the shortest path from a source $s$ to a destination $t$ that has the minimu distance among all paths from $s$ to $t$.}
+\subsection{Subpath Optimality}
+A subpath of a shortest path is itself a shortest path.
+
+\section{Dijkstra's Algorithm}
+\begin{itemize}
+    \item Single-source shortest path (SSSP) problem: given a vertex $s$ $\in$ $V$, find a shortest path $\forall$ vertex $t$ $\in$ $V$
+    \item Dijkstra's algorithm solves the SSSP problem
+\end{itemize}
+
+\subsection{How it Works}
+\begin{itemize}
+    \item At each vertex $v$, we maintain a label
+    \subitem $D(v)$ the length of the shortest path from s to v found so far
+    \subitem End goal is to ensure $D(v)$ equals the shortest path $d(s,v)$
+\end{itemize}
+
+\begin{itemize}
+    \item At each step
+    \begin{itemize}
+        \item Add the vertex $u$, which is outside $S$ and has the smallest $D(u)$
+        \item Update $D(v)$ for every vertex \textbf{$v$ adjacent to $u$}
+        \subitem $D(v)$ \textleftarrow min\{$D(v),D(u) + w(u,v)$\} 
+        \item $D(v)$ is the current shortest known path to $v$
+        \item $D(u)$ is the current shortest known path to $u$
+        \item $w(u,v)$ is the weight of the edge connecting $u$ to $v$
+    \end{itemize}
+    \subsubitem \keyidea{Set new epoch of $D(v)$ to be the minimal between: $D(v)$ $\oplus$ $D(u) + w(u,v)$}
+\end{itemize}
+
+\subsection{Implementation}
+\keyidea{What data structure should we use?}
+\begin{itemize}
+    \item We want a data structure that can be used to find the minimal \textrightarrow PriorityQueue $Q$ 
+\end{itemize}
+\sourcepages{17--18}
+
+\textbf{Input:} A weighted graph $G$ with nonnegative edge weights and a source $s$.
+\textbf{Output:} Shortest distance labels $D(v)$ and parent pointers $P(v)$.
+\begin{lstlisting}[caption={Dijkstra's algorithm using an adaptable priority queue}]
+Algorithm dijkstra(G, s):
+    for each vertex v in G.vertices():
+        D[v] <- infinity
+        P[v] <- null
+    D[s] <- 0
+    Q <- priority queue containing all vertices, keyed by D
+
+    while Q is not empty:
+        u <- Q.removeMinElement()
+        for each vertex v adjacent to u:
+            if v is still in Q:
+                if D[u] + w(u, v) < D[v]:
+                    D[v] <- D[u] + w(u, v)
+                    P[v] <- u
+                    Q.decreaseKey(v, D[v])
+    return D, P
+\end{lstlisting}
+
+\keyidea{Implementation process for Listing 1:}
+\begin{enumerate}
+    \item \textbf{Initialize the labels and parents.} Set $D(v)=\infty$ and $P(v)=\text{null}$ for every vertex, then set $D(s)=0$.
+    \item \textbf{Build the priority queue.} Insert all vertices using $D(v)$ as their keys. Store a reference (handle) to each vertex's queue entry so it can be updated directly.
+    \item \textbf{Choose the next vertex.} Remove the vertex $u$ with the smallest distance label from $Q$. Its shortest distance is now final.
+    \item \textbf{Inspect its neighbors.} For each adjacent vertex $v$ still in $Q$, test whether $D(u)+w(u,v)<D(v)$. For a directed graph, inspect only outgoing edges of $u$.
+    \item \textbf{Update an improved path.} If the test succeeds, set $D(v)=D(u)+w(u,v)$ and $P(v)=u$. Call \method{decreaseKey} using the stored handle to change the queue entry's key and perform an upheap operation. Changing $D(v)$ alone does not restore the heap order.
+    \item \textbf{Repeat until the queue is empty.} Continue removing the minimum and relaxing its edges. An unreachable vertex keeps distance $\infty$ and parent \method{null}.
+    \item \textbf{Recover a shortest path.} For a reachable target $t$, follow the parent pointers from $t$ back to $s$, then reverse the sequence.
+\end{enumerate}
+\subsection{Correctness}
+\begin{theorem}
+    Assume all edge weights are nonnegative. When vertex $v$ is removed from $Q$, its label $D(v)$ equals the shortest path distance $d(s,v)$.
+\end{theorem}
+\begin{proof}
+    We induct on the order in which vertices are removed from $Q$.
+
+    \textbf{Base case.} The first vertex removed is $s$, with
+    $D(s) = 0 = d(s,s)$.
+
+    \textbf{Induction hypothesis.} Assume $D(u) = d(s,u)$ for every vertex $u$ already removed from $Q$.
+
+    \textbf{Induction step.} Let $v$ be the next vertex removed. We must prove $D(v) = d(s,v)$.
+    Every finite label is the length of an actual path from $s$, so
+    $D(x) \geq d(s,x)$ for every vertex $x$.
+
+    Suppose, for a contradiction, that $D(v) > d(s,v)$. Then $v$ is reachable.
+    Choose a shortest path $P$ from $s$ to $v$, and let $b$ be the first vertex on $P$ still in $Q$.
+    Let $u$ be the vertex immediately before $b$. Since $u$ has already been removed, the induction hypothesis gives $D(u) = d(s,u)$.
+    When $u$ was removed, the edge $(u,b)$ was relaxed. By subpath optimality,
+    \[
+        D(b) \leq D(u) + w(u,b)
+        = d(s,u) + w(u,b)
+        = d(s,b).
+    \]
+    Together with $D(b) \geq d(s,b)$, this gives $D(b) = d(s,b)$.
+    Since the remaining edges of $P$ have nonnegative weights,
+    $d(s,b) \leq d(s,v)$. Also, $v$ has the smallest label in $Q$, so $D(v) \leq D(b)$.
+    Therefore,
+    \[
+        D(v) \leq D(b) = d(s,b) \leq d(s,v),
+    \]
+    contradicting $D(v) > d(s,v)$. Hence $D(v) = d(s,v)$.
+    If $v$ is unreachable, its label remains $\infty = d(s,v)$, because no path from $s$ can produce a finite label.
+    Thus the theorem holds for the next vertex removed, completing the induction.
+\end{proof}
+
+\subsection{Performance for PQ implemented by heap}
+\sourcepages{23--24}
+
+Let $n=|V|$ and $m=|E|$. Use a binary min-heap with a handle for each vertex, so membership checks take $O(1)$ and key decreases take $O(\log n)$.
+\begin{lstlisting}[caption={Dijkstra's algorithm with binary-heap operation costs}]
+Algorithm dijkstraHeap(G, s):
+    for each vertex v in G.vertices():       // O(n) total
+        D[v] <- infinity
+    D[s] <- 0
+    Q <- buildMinHeap(vertices, keys D)      // O(n), bottom-up
+    // Keep a handle to each entry; update handles on heap swaps.
+
+    while Q is not empty:                   // n iterations
+        u <- Q.removeMinElement()           // O(log n)
+        mark u as no longer in Q            // O(1)
+        for each edge (u, v) incident to u:  // Scan neighbors
+            if v is still in Q:             // O(1)
+                if D[u] + w(u, v) < D[v]:
+                    D[v] <- D[u] + w(u, v)
+                    Q.decreaseKey(v, D[v])  // O(log n), upheap
+    return D
+\end{lstlisting}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Operation & Number of operations & Total cost \\
+\midrule
+Initialize labels and build heap & $n$ vertices & $O(n)$ \\
+Remove minimum & $n$ removals & $O(n\log n)$ \\
+Scan neighbors (adjacency list) & $\sum_u \deg(u)=O(m)$ & $O(m)$ \\
+Scan neighbors (adjacency matrix) & $n$ entries per vertex & $O(n^2)$ \\
+Decrease key & At most $O(m)$ updates & $O(m\log n)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+For an adjacency list, processing $u$ costs $O(\deg(u)\log n)$ for its neighbors, giving
+\[
+    O(n)+O(n\log n)+O(m\log n)
+    = \boxed{O((n+m)\log n)}.
+\]
+For an adjacency matrix, finding the neighbors of each $u$ requires scanning a full row, giving
+\[
+    O(n)+O(n\log n)+O(n^2)+O(m\log n)
+    = \boxed{O(n^2+m\log n)}.
+\]
+\end{document}
