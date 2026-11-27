@@ -1,0 +1,486 @@
+Université d'Ottawa                          University of Ottawa
+Faculté de génie                          Faculty of Engineering
+
+École de science informatique     School of Electrical Engineering
+et de génie électrique                        and Computer Science
+
+                                        Programming Assignment 2 (7.5%)
+
+                                                        CSI2110 -- Fall 2026
+                                                  11:59 PM, November 30, 2026
+
+Late assignment policy: Submissions up to 24 hours late are accepted with a 30% penalty. No submissions are accepted more
+than 24 hours after the deadline.
+
+                                 Reconnecting the Neighborhood
+
+Problem Description
+
+After a severe storm, a neighborhood's road intersections must be repaired before delivery vehicles can use them.
+Crews reopen intersections in stages. In each stage, some intersections are repaired and reconnected to their open
+neighbors. A response team needs to monitor the neighborhood's connectivity and the available delivery routes from
+supply depots to destinations as repairs progress. In this assignment, the neighborhood is modeled as a rectangular
+street grid, where vertices represent intersections, and edges represent roads. Each road has a fixed travel time that
+can differ from that of other roads.
+Your program will produce a report after each repair stage, showing the connected regions, the fastest routes, and the
+critical roads for specified deliveries.
+
+1 How the road network works
+
+The road grid has  rows and  columns, where ,   1. Let  =  denote the total number of intersections
+(vertices). Rows are numbered from 0 to  - 1 and columns from 0 to  - 1, with (0, 0) at the upper-left corner.
+Intersection (, ), located at row  and column , has an integer identifier , given by
+
+                                                         = id(, ) =  + .
+
+Conversely, the intersection with identifier  is located at row / and column  mod .
+Each intersection has one of two states: blocked or open. A blocked intersection has not yet been repaired and cannot
+be used by delivery vehicles. An open intersection has been repaired and can be used. Initially, all intersections
+are blocked. Two intersections are neighbors if one is immediately above, below, to the left, or to the right of the
+other. Note that two intersections with consecutive identifiers may not be neighbors: for example, when ,  > 1,
+intersections  - 1 and  are not neighbors. A road connects each pair of neighboring intersections, and a road is
+usable when both intersections are open. Opening an intersection makes all roads to its open neighbors usable.
+Each delivery request specifies a source  and a destination . A delivery route from  to  is a sequence of open
+intersections that starts at  and ends at , with a usable road connecting each consecutive pair. A source-destination
+pair (, ) is reachable if there exists a delivery route between  and . All roads are undirected and have fixed
+positive integer travel times, in seconds. A delivery route's travel time is the sum of the travel times of its roads.
+
+                               1
+CSI 2110 Fall 2026                                            page 2
+
+In each stage, newly repaired intersections become open, which can make additional roads usable and change the
+network status.
+
+First, the connectivity and open components could change. A connected region, also called an open component,
+consists of an open intersection together with all other open intersections reachable from it through usable roads. An
+isolated open intersection forms a component on its own; blocked intersections do not belong to these components.
+
+Second, the delivery route between each source-destination pair could change. A delivery route may initially require
+a long detour. As more intersections reopen, a faster route may become available.
+
+In addition, for a source-destination pair that currently has a delivery route, a usable road is critical if removing that
+road alone would leave no route between that pair. It is non-critical for the pair if delivery would still be possible
+without it. A road can be critical for one source-destination pair and non-critical for another. As more intersections
+reopen, the critical roads for each source-destination pair could also change.
+
+See Example 1 for an illustration of the road grid model and the network status.
+
+Example 1: An illustration
+The following snapshots show a 3 × 4 grid after two repair stages. Colored vertices are open; gray vertices are
+blocked. Only usable roads are drawn, and road labels give travel times in seconds. Different colors in the left
+snapshot indicate different open components.
+
+After stage 1: two components   After stage 2: one component
+
+091                    2  3     09112    3
+
+1                               1  1  1
+
+4                   5  6  7     41596    7
+
+1                               1     1
+
+8                   9  10 1 11  8  9  10 1 11
+
+In stage 1, the open components are {0, 1, 4, 8} and {10, 11}, containing four and two open intersections,
+respectively.
+In stage 2, vertices 2, 5, and 6 have also opened, joining the two regions into one component of size nine.
+Vertices 3, 7, and 9 remain blocked. All nine open intersections can now reach one another.
+
+For the source-destination pair (0, 11) in the right snapshot, there exist multiple delivery routes. For example,
+route [0, 1, 2, 6, 10, 11] takes 9 + 1 + 1 + 1 + 1 = 13 seconds, while another route [0, 4, 5, 1, 2, 6, 10, 11] takes 7
+seconds. Among all routes for (0, 11), the route [0, 4, 5, 1, 2, 6, 10, 11] is the fastest route.
+
+Roads (6, 10) and (10, 11) are critical for (0, 11): losing either disconnects the pair. Road (4, 8) is non-critical
+for (0, 11), but it is critical for the source-destination pair (0, 8) because it is the only road incident to vertex 8.
+CSI 2110 Fall 2026                                                               page 3
+
+2 Assignment overview and programming tasks
+
+Your goal is to monitor and analyze the network as repairs are completed in stages.
+
+The report for each stage contains three parts:
+
+  · Connectivity and open components. Give the number of open intersections, the number of open components,
+    and the size of each component. For each monitored source-destination pair, report 1 if it is reachable and 0
+    otherwise.
+
+  · Fastest routes. For each reachable source-destination pair, give a delivery route with the minimum total travel
+    time and report that time. For an unreachable pair, report -1.
+
+  · Critical roads. For each reachable pair, list all the critical roads, i.e., the roads whose individual failure would
+    disconnect the pair. Report [] if no road is critical, or -1 if the pair is unreachable.
+
+For example, at stage 1 of Example 1, there are 6 open intersections and 2 open components, with sizes 4 and 2. For
+the three monitored pairs (0, 11), (0, 8), and (10, 11) (specified in the input), the results are as follows:
+
+                    Pair      Reachable  Fastest route and time  Critical roads
+
+                    (0, 11)        0     -1                      -1
+                    (0, 8)         1     [0, 4, 8]; time 2       (0, 4), (4, 8)
+                    (10, 11)       1     [10, 11]; time 1        (10, 11)
+
+Parts 2.1-2.3 correspond to these three parts. You need to complete the GridNetwork constructor and one main
+method in each of three classes: GridNetwork, DijkstraPaths, and RoadAnalysis. Part 2.4 explains how the
+provided testing program combines their results.
+
+Input and Output
+
+The input begins with the information that remains fixed throughout the run:
+
+1) One line n m, followed by  = ( - 1) + ( - 1) lines, each in the form of u v time, giving the travel time
+    for road (, ) when the road is usable. List every neighboring road exactly once, with  < , in any order. For a
+    1 × 1 grid, there are no road lines.
+
+2) One line q, followed by  lines in the form of source target, specifying the source-destination pairs to monitor
+    throughout the run.
+
+Next, a sequence of repair stages follows. Each stage starts with a line STAGE b, and then  lines row col follow.
+These coordinates identify the intersections repaired in this stage. The number  specifies how many coordinate lines
+belong to this stage. One input file may contain multiple repair stages, with a final line END. The program processes
+each stage based on the result of the previous stage (i.e., repairs are cumulative). Repeated coordinates or repairs to
+an already open intersection have no additional effect. The output starts with the stage 0 report, showing the initial
+status of the road network, followed by one report after each complete stage. Each report contains connectivity and
+open components, fastest routes, and critical roads.
+
+Input limits. The provided testing program accepts  =   400, 1    20,   1, and road times from 1 to
+109. Identifiers and coordinates must be within the grid.
+
+See the Appendix for an input file for Example 1 and its sample output.
+CSI 2110 Fall 2026                                                                       page 4
+
+2.1 Part 1: Connectivity and Open Components
+
+Use Partition ADT from P1 to maintain open components. Initially, all  intersections are blocked and form
+singleton clusters, so there are no open components. When an intersection opens, merge its cluster with those of its
+open neighbors. You may use the provided ListPartition in the starter code, or your own ArrayPartition or
+ListPartition from P1.
+
+The GridNetwork class. The provided testing program reads the input file, constructs a fresh partition, and creates
+one GridNetwork object. You need to implement its constructor and repairStage.
+
+ // IMPLEMENT: store the grid and its fixed road data
+ public GridNetwork(int n, int m, int[][] roads, Partition partition)
+
+ // IMPLEMENT: apply the repairs in one stage and return its summary
+ public Status repairStage(int[][] repairs, int[][] queries)
+
+Network data. The starter declares n, m, vertexCount, partition, and the following array fields. Your constructor
+initializes them from its arguments. Each row of roads is {u,v,time}.
+
+Field               Meaning
+
+boolean[] open      open[v] is true if  is open; initially all entries are false.
+int[][] neighbors   neighbors[v] lists all grid neighbors of , whether blocked or open.
+int[][] travelTime  travelTime[v][i] is the time from  to neighbors[v][i].
+
+neighbors is essentially an adjacency-list representation of the road grid, where neighbors[v] stores all adjacent
+vertices of . The vertices in neighbors[v] must be in increasing identifier order. travelTime stores the
+corresponding travel time. For example, neighbors[0] = {1,4} and travelTime[0] = {9,1} in Example 1.
+
+Input and result of repairStage. Each row of repairs is a {row,col} coordinate for this stage; each row of
+queries is a monitored {source,target} pair. Apply all repairs, then return the provided Status(opened,
+components, connected) result:
+
+  · opened: the total number of open intersections, as an int.
+  · components: an int[][] with one {label,size} row per open component, sorted by label. Each label is the
+
+    component's smallest vertex identifier; size is its number of vertices.
+  · connected: a boolean[] in query order. Both endpoints must be open and belong to the same open component.
+
+2.2 Part 2: Fastest Delivery Routes
+
+The DijkstraPaths class. This class computes the fastest route for one monitored source-destination pair in the
+current network. It receives the GridNetwork object after all repairs in the stage have been applied, together with
+one source and destination from queries. You implement shortestRoute in this class.
+
+ public static Route shortestRoute(GridNetwork network, int source, int target)
+
+Result. Return a Route object using the provided constructor Route(time, vertices), where time is a long
+giving the minimum total travel time, and vertices is an int[] giving the fastest route from source to destination,
+including both endpoints.
+
+ · If either endpoint is blocked or no route exists, return time -1 and an empty array.
+ · If the endpoints are the same open intersection, return time 0 and the one-vertex route {source}.
+CSI 2110 Fall 2026  page 5
+
+ · If several routes have the same minimum time, return any one of them.
+
+In stage 2 of Example 1, the call shortestRoute(network,0,11) returns time 7 and route [0, 4, 5, 1, 2, 6, 10, 11].
+Priority queue implementation in Dijkstra's algorithm. Java's PriorityQueue does not have a decrease-
+key method. To implement Dijkstra's algorithm, use the provided HeapAdaptablePriorityQueue from
+net.datastructures:
+
+ HeapAdaptablePriorityQueue<Long, Integer> pq = new HeapAdaptablePriorityQueue<>();
+
+Insert each open vertex once using pq.insert(dist[v],v) and retain the returned Entry<Long,Integer>.
+When dist[v] improves, call pq.replaceKey(entry,dist[v]) to update the existing key and restore heap order.
+Use pq.removeMin() to remove the minimum entry, and entry.getKey() and entry.getValue() to read its
+distance label and vertex identifier. See Section 9.5 in the textbook for more implementation details of the adaptable
+priority queue.
+
+2.3 Part 3: Critical Delivery Roads
+
+The RoadAnalysis class. This class identifies the critical roads for one monitored pair. Its input is the GridNetwork
+object and one source-destination pair. You implement criticalRoads in this class, with a private depth-first
+search (DFS) helper if needed.
+
+ public static int[][] criticalRoads(GridNetwork network, int source, int target)
+
+Result. Return an int[][] with one {u,v} row for each critical road, where  < , with no duplicates. The rows
+may be in any order. Return an empty array if either endpoint is blocked, the pair is unreachable, or no road is critical.
+
+How to identify critical roads. Run DFS from the source. Consider a tree edge (, ), where  is the parent of .
+If a vertex in 's subtree has a back edge to  or an ancestor of , that back edge provides a detour around (, ).
+Otherwise, removing (, ) separates the subtree from the source, so the road is a bridge (or critical road in our
+context). The following information helps us detect these detours:
+
+  · parent[v] records the parent of  in the DFS tree.
+  · disc[v] records the discovery order of : use 0, 1, 2, and so on, and -1 for an unvisited vertex. A smaller
+
+    number means an earlier discovery.
+  · low[v] is the smallest discovery number reachable from  by following zero or more tree edges downward and
+
+    then at most one back edge to an ancestor. Intuitively, it records how far back a back edge from this subtree can
+    reach. When  is first visited, initialize low[v] = disc[v].
+
+Examine each open neighbor  in network.neighbors[v] in the stored order:
+
+  · If  is unvisited, set its parent to  and visit it recursively. After the recursive call returns, update low[] =
+    min{low[], low[]}. This carries information about back edges in 's subtree up to .
+
+  · Otherwise, if   parent[] and disc[] < disc[], the road to  is a back edge. Update low[] =
+    min{low[], disc[]}. Ignore the edge back to the parent: it is the same undirected road, not a detour.
+
+Complete the DFS so that all low values are final. If the target was not reached, return an empty array. Otherwise,
+follow parent from target back to source. A tree edge (, ) on this path is critical exactly when
+
+                                                          low[] > disc[].
+
+This means that 's subtree cannot reach  or an earlier ancestor through a back edge. The inequality is strict:
+reaching  itself already provides a detour. Bridges outside the source-to-target tree path are not critical for this pair.
+CSI 2110 Fall 2026                                                                                        page 6
+See Example 2 for an illustration of identifying critical roads.
+
+Example 2: Finding Critical Roads with DFS
+Use the network after stage 2 of Example 1, with source 0 and destination 11.
+1. Discover the vertices. Starting at 0, DFS first follows 0, 1, 2, 6, 5, 4, 8. It then traces back to 6 and explores
+10, 11. Thus the discovery order is
+
+                                                     0, 1, 2, 6, 5, 4, 8, 10, 11,
+
+with discovery numbers 0 through 8. The diagram shows the DFS tree, where solid lines are discovery edges and
+dashed arrows are back edges.
+
+0  1                         2  6                                 Vertex  Parent         disc  Final low
+
+   4                         5  10                                0       -              0     0
+                                                                  1       0              1     0
+   8                            11                                2       1              2     0
+                                                                  6       2              3     0
+Red edges are critical for (0, 11).                               5       6              4     0
+                                                                  4       5              5     0
+                                                                  8       4              6     6
+                                                                  10      6              7     7
+                                                                  11      10             8     8
+
+2. Update the low values. Each low value starts at its discovery number. At vertex 5, the back edge to 1 gives
+low[5] = min(4, 1) = 1. DFS then visits 4, whose back edge to 0 gives low[4] = min(5, 0) = 0. After visiting
+8, DFS returns from 4 to 5 and sets low[5] = min(1, 0) = 0. As DFS later returns to 6, 2, and 1, the value 0
+
+propagates upward.
+
+Vertices 8 and 11 have no back edge, so their low values remain 6 and 8. On returning from 11 to 10,
+low[10] = min(7, 8) = 7. The final values are shown in the table.
+3. Check the source-to-target tree path. Tracing parents from 11 back to 0 identifies the source-to-target path
+0, 1, 2, 6, 10, 11. Check if each edge is a bridge:
+
+      Tree edge (, )            Test low[] > disc[]               Critical for (0, 11)?
+
+      (0, 1)                    0 > 0: false                      No
+      (1, 2)                    0 > 1: false                      No
+      (2, 6)                    0 > 2: false                      No
+      (6, 10)                   7 > 3: true                       Yes
+      (10, 11)                  8 > 7: true                       Yes
+
+Return {(6, 10), (10, 11)}.
+
+2.4 Generating the Report
+
+The TestGridNetwork class. This provided program reads the input, calls your methods, and prints the report.
+
+From input to method calls. The program reads n, m, the road records into roads, and the monitored pairs into
+queries. It constructs a fresh ListPartition(N) and one GridNetwork object. If you use your own Partition
+implementation from P1, you can change the partition construction.
+
+Stage 0 is generated automatically by calling repairStage with an empty repair list. For each later STAGE b, the
+program reads all  coordinate lines into repairs before making the following calls:
+CSI 2110 Fall 2026                                                                                   page 7
+
+Class and method          Arguments                Returned result
+                          repairs, queries         Status: open count, component rows, and
+GridNetwork: repairStage  network, source, target  connectivity
+                          network, source, target  Route: minimum time and route
+DijkstraPaths:
+shortestRoute                                      Array of critical road pairs
+RoadAnalysis:
+criticalRoads
+
+The testing program calls repairStage once, then shortestRoute for each query, then criticalRoads for each
+query. It prints the results in that order and sorts each critical-road list.
+Run the testing program as follows:
+
+ javac *.java
+ java TestGridNetwork < sample.txt
+
+In the starter code, a small test program TestExample1.java is provided for debugging. After compiling the Java
+files, run the following command:
+
+ java TestExample1 i j
+
+Replace  with 1, 2, or 3 to select the part, and  with 1 or 2 to select the stage. The program prints the results for part
+ after stage  of Example 1.
+
+3 Assignment Tasks and Marking Grid (60 marks)
+
+Inspect the starter package before beginning. Its six main Java files are organized as follows. You complete one
+constructor and three main methods.
+
+File                      What you need to do
+
+Partition.java            Provided interface.
+ListPartition.java        Use the provided implementation or your own P1 implementation.
+GridNetwork.java          Complete the constructor and repairStage.
+DijkstraPaths.java        Complete shortestRoute.
+RoadAnalysis.java         Complete criticalRoads.
+TestGridNetwork.java      Provided testing program; change only the partition construction if using
+                          your own P1 implementation.
+
+You may add private fields and helper methods in your program.
+Testing. Run the nine provided input files, sample.txt and test1.txt through test8.txt, and save their
+complete output, including stage 0. For example:
+
+  java TestGridNetwork < test1.txt > test1-output.txt
+
+Report: report.pdf (1-3 pages). Use the following four sections:
+
+1) Status of Code. Explain whether the submitted code is working or partially working, list known bugs, and give
+    any information that can help marking.
+CSI 2110 Fall 2026                                                                 page 8
+
+2) Testing. Describe the results of the provided test cases. If you include your own additional tests, describe the
+    chosen inputs, expected outputs, and actual results.
+
+3) Program. Briefly explain how you build the adjacency lists, maintain open components, find the shortest paths,
+    and identify critical roads.
+
+4) Resources. Give references to all resources used to complete the assignment.
+
+Submit one zip file that contains
+
+ · all required Java source files;
+ · report.pdf;
+ · nine output files: sample-output.txt and test1-output.txt through test8-output.txt;
+ · any additional test inputs you create, together with expected and actual outputs.
+
+                    Marking scheme                                          Marks
+
+                    Network construction, repair stages, and connectivity   15
+                    Dijkstra algorithm for fastest routes                   12
+                    Finding critical roads                                  15
+                    Written report                                          10
+                    Programming quality, comments, and report organization  8
+
+                    Total                                                   60
+CSI 2110 Fall 2026                 page 9
+
+Appendix: Sample input and output
+
+The file sample.txt uses the 3 × 4 grid in Example 1, with 17 fixed roads, three monitored pairs, and two repair
+stages. The two snapshots show the states after stages 1 and 2.
+
+Sample input                       Reading the input
+
+  34                               The first line gives three rows and four columns. The next 17 lines set
+  019                              the fixed road times. For example, 0 1 9 gives road (0, 1) time 9.
+  121                              Next, 3 gives the number of monitored pairs: (0, 11), (0, 8), and
+  231                              (10, 11).
+  451                              Stage 1 lists six coordinates, opening vertices 0, 1, 4, 8, 10, and 11. The
+  569                              components are {0, 1, 4, 8} and {10, 11}, as in the left snapshot. Pairs
+  671                              (0, 8) and (10, 11) become reachable; (0, 11) remains disconnected.
+  891                              Stage 2 lists four coordinates, for vertices 2, 6, 5, and 11. Vertex 11 is
+  9 10 1                           already open. The three new openings join the regions and create the
+  10 11 1                          right snapshot, with nine open vertices in one component.
+  041
+  151
+  261
+  371
+  481
+  591
+  6 10 1
+  7 11 1
+  3
+  0 11
+  08
+  10 11
+  STAGE 6
+  00
+  01
+  10
+  20
+  22
+  23
+  STAGE 4
+  02
+  12
+  11
+  23
+  END
+CSI 2110 Fall 2026                                        page 10
+
+Appendix: Sample output (continued)
+
+The sample output is illustrated as follows. Component entries use (label,size); road entries use (u,v).
+
+Stage 0                         components=[]
+Connectivity: opened=0 count=0
+
+   (0,11)=0 (0,8)=0 (10,11)=0
+Fastest routes:
+
+   (0,11): -1
+   (0,8): -1
+   (10,11): -1
+Critical roads:
+   (0,11): -1
+   (0,8): -1
+   (10,11): -1
+
+Stage 1
+Connectivity: opened=6 count=2 components=[(0,4),(10,2)]
+
+   (0,11)=0 (0,8)=1 (10,11)=1
+Fastest routes:
+
+   (0,11): -1
+   (0,8): time=2 route=[0,4,8]
+   (10,11): time=1 route=[10,11]
+Critical roads:
+   (0,11): -1
+   (0,8): [(0,4),(4,8)]
+   (10,11): [(10,11)]
+
+Stage 2
+Connectivity: opened=9 count=1 components=[(0,9)]
+
+   (0,11)=1 (0,8)=1 (10,11)=1
+Fastest routes:
+
+   (0,11): time=7 route=[0,4,5,1,2,6,10,11]
+   (0,8): time=2 route=[0,4,8]
+   (10,11): time=1 route=[10,11]
+Critical roads:
+   (0,11): [(6,10),(10,11)]
+   (0,8): [(4,8)]
+   (10,11): [(10,11)]
+
